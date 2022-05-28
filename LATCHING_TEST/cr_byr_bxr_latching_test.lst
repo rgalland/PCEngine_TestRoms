@@ -1,0 +1,856 @@
+#[1]   cr_byr_bxr_latching_test.asm
+   11                     ;--------------- END INCLUDES ------------------
+   12                     
+   13           0077      TOP_LINE        = $0077
+   14           0086      BOT_LINE        = $0086
+   15                     
+   16           005A      TOP_BYR         = $005A
+   17           00BA      BOT_BYR         = $00BA
+   18                     
+   19           0008      LFT_BXR         = $0008
+   20                     
+   21           0000      UP          = $00
+   22           0001      DOWN        = $01
+   23                     
+   24                     
+   25           1000      ASCII_VRAM      = $1000
+   26           1100      HEX_VRAM        = ASCII_VRAM+$100
+   27           2000      BONKBG_VRAM     = $2000
+   28           3000      BONKSP_VRAM     = $3000
+   29                     
+   30           0F00      SATB_VRAM       = $0F00         ;where to put the Sprite Table in VRAM
+   31                     
+   32           0020      BATWIDTH        = 32    ;Set to 32, 64, or 128
+   33           0020      BATHEIGHT       = 32    ;Set to 32 or 64.
+   34                     
+   35                     
+   36                     
+   37                     ; Zero-page variables
+   38           2000              .zp
+   39  --:2000            hsync_line:     .ds 2
+   40  --:2002            direction:      .ds 1
+   41  --:2003            vb_count:       .ds 1
+   42                     
+   43                     
+   44                     
+   45                     ;==============================
+   46           0000              .code
+   47           0000              .bank   $0
+   48           E000              .org    $E000
+   49                     
+   50                     
+   51  00:E000            MAIN:
+   52                             INTS_OFF                ;DISABLE INTERRUPTS!
+       00:E000  03 05             st0  #5
+       00:E002  13 00             st1   #$00
+       00:E004  23 00             st2   #$00
+   53  00:E006  64 02             stz     <direction
+   54                             stw     #TOP_LINE,<hsync_line
+       00:E008  A9 77              lda    LOW_BYTE #TOP_LINE
+       00:E00A  85 00              sta    LOW_BYTE <hsync_line
+       00:E00C  A9 00              lda    HIGH_BYTE #TOP_LINE
+       00:E00E  85 01              sta    HIGH_BYTE <hsync_line
+   55                     
+   56                             map     BonkBG
+       00:E010  A9 03              lda   #bank(BonkBG)        ; addressable memory
+       00:E012  53 04              tam   #page(BonkBG)
+   57                             vload   BONKBG_VRAM, BonkBG, $1000
+                0001              .if (3 = 3)
+                                   stw   #BONKBG_VRAM,<_di
+       00:E014  A9 00              lda    LOW_BYTE #BONKBG_VRAM
+       00:E016  85 F0              sta    LOW_BYTE <_di
+       00:E018  A9 20              lda    HIGH_BYTE #BONKBG_VRAM
+       00:E01A  85 F1              sta    HIGH_BYTE <_di
+                                   stw   #BonkBG,<_si
+       00:E01C  A9 00              lda    LOW_BYTE #BonkBG
+       00:E01E  85 EE              sta    LOW_BYTE <_si
+       00:E020  A9 40              lda    HIGH_BYTE #BonkBG
+       00:E022  85 EF              sta    HIGH_BYTE <_si
+                                   stw   #$1000,<_cx     ;WTF is this??? ERRORS!!! "stw   $1000,<_cx"
+       00:E024  A9 00              lda    LOW_BYTE #$1000
+       00:E026  85 FC              sta    LOW_BYTE <_cx
+       00:E028  A9 10              lda    HIGH_BYTE #$1000
+       00:E02A  85 FD              sta    HIGH_BYTE <_cx
+                                  .else
+                                  .endif
+       00:E02C  20 58 FE           jsr   load_vram
+   58                             map     MyFont
+       00:E02F  A9 02              lda   #bank(MyFont)        ; addressable memory
+       00:E031  53 04              tam   #page(MyFont)
+   59                             vload   ASCII_VRAM, MyFont, $0800
+                0001              .if (3 = 3)
+                                   stw   #ASCII_VRAM,<_di
+       00:E033  A9 00              lda    LOW_BYTE #ASCII_VRAM
+       00:E035  85 F0              sta    LOW_BYTE <_di
+       00:E037  A9 10              lda    HIGH_BYTE #ASCII_VRAM
+       00:E039  85 F1              sta    HIGH_BYTE <_di
+                                   stw   #MyFont,<_si
+       00:E03B  A9 00              lda    LOW_BYTE #MyFont
+       00:E03D  85 EE              sta    LOW_BYTE <_si
+       00:E03F  A9 40              lda    HIGH_BYTE #MyFont
+       00:E041  85 EF              sta    HIGH_BYTE <_si
+                                   stw   #$0800,<_cx     ;WTF is this??? ERRORS!!! "stw   $0800,<_cx"
+       00:E043  A9 00              lda    LOW_BYTE #$0800
+       00:E045  85 FC              sta    LOW_BYTE <_cx
+       00:E047  A9 08              lda    HIGH_BYTE #$0800
+       00:E049  85 FD              sta    HIGH_BYTE <_cx
+                                  .else
+                                  .endif
+       00:E04B  20 58 FE           jsr   load_vram
+   60                             vload   BONKSP_VRAM, SprCHR, $0200      ;Load 2 32x32 sprites
+                0001              .if (3 = 3)
+                                   stw   #BONKSP_VRAM,<_di
+       00:E04E  A9 00              lda    LOW_BYTE #BONKSP_VRAM
+       00:E050  85 F0              sta    LOW_BYTE <_di
+       00:E052  A9 30              lda    HIGH_BYTE #BONKSP_VRAM
+       00:E054  85 F1              sta    HIGH_BYTE <_di
+                                   stw   #SprCHR,<_si
+       00:E056  A9 00              lda    LOW_BYTE #SprCHR
+       00:E058  85 EE              sta    LOW_BYTE <_si
+       00:E05A  A9 50              lda    HIGH_BYTE #SprCHR
+       00:E05C  85 EF              sta    HIGH_BYTE <_si
+                                   stw   #$0200,<_cx     ;WTF is this??? ERRORS!!! "stw   $0200,<_cx"
+       00:E05E  A9 00              lda    LOW_BYTE #$0200
+       00:E060  85 FC              sta    LOW_BYTE <_cx
+       00:E062  A9 02              lda    HIGH_BYTE #$0200
+       00:E064  85 FD              sta    HIGH_BYTE <_cx
+                                  .else
+                                  .endif
+       00:E066  20 58 FE           jsr   load_vram
+   61                     
+   62                             set_bgpal #0, FontPal, #2
+       00:E069  A9 00              lda   #0
+       00:E06B  85 F8              sta   <_al
+                                   stw   #FontPal,<_si
+       00:E06D  A9 00              lda    LOW_BYTE #FontPal
+       00:E06F  85 EE              sta    LOW_BYTE <_si
+       00:E071  A9 54              lda    HIGH_BYTE #FontPal
+       00:E073  85 EF              sta    HIGH_BYTE <_si
+                0002              .if 2
+       00:E075  A9 02              lda   #2
+                                  .else
+                                  .endif
+       00:E077  85 FC              sta   <_cl
+       00:E079  20 00 FE           jsr   set_palette
+   63                             set_sprpal #0, SPRPal, #1
+       00:E07C  A9 00              lda   #0
+                                   add   #16
+                0000              .if (1 = 2)            ; register A (handle carry
+                                  .else
+       00:E07E  18                 clc
+       00:E07F  69 10              adc    #16
+                                  .endif
+       00:E081  85 F8              sta   <_al
+                                   stw   #SPRPal,<_si
+       00:E083  A9 40              lda    LOW_BYTE #SPRPal
+       00:E085  85 EE              sta    LOW_BYTE <_si
+       00:E087  A9 54              lda    HIGH_BYTE #SPRPal
+       00:E089  85 EF              sta    HIGH_BYTE <_si
+                0002              .if 2
+       00:E08B  A9 01              lda   #1
+                                  .else
+                                  .endif
+       00:E08D  85 FC              sta   <_cl
+       00:E08F  20 00 FE           jsr   set_palette
+   64                     
+   65  00:E092  20 88 E3          jsr     Clear_BAT
+   66                     
+   67                             stw     #Intro_Text,<_si ;Point to text string
+       00:E095  A9 07              lda    LOW_BYTE #Intro_Text
+       00:E097  85 EE              sta    LOW_BYTE <_si
+       00:E099  A9 E3              lda    HIGH_BYTE #Intro_Text
+       00:E09B  85 EF              sta    HIGH_BYTE <_si
+   68                             stw     #$0020,<_di      ;Point on-screen
+       00:E09D  A9 20              lda    LOW_BYTE #$0020
+       00:E09F  85 F0              sta    LOW_BYTE <_di
+       00:E0A1  A9 00              lda    HIGH_BYTE #$0020
+       00:E0A3  85 F1              sta    HIGH_BYTE <_di
+   69  00:E0A5  20 CA E3          jsr     Print_Text
+   70                     
+   71  00:E0A8  20 E3 E3          jsr     Draw_BonkBG
+   72                     
+   73                     
+   74                             BG_GREEN
+                                  stwz    color_reg
+       00:E0AB  9C 02 04           stz    LOW_BYTE color_reg
+       00:E0AE  9C 03 04           stz    HIGH_BYTE color_reg
+                                  stw     #%0000_000_111_000_000,color_data
+       00:E0B1  A9 C0              lda    LOW_BYTE #%0000_000_111_000_000
+       00:E0B3  8D 04 04           sta    LOW_BYTE color_data
+       00:E0B6  A9 01              lda    HIGH_BYTE #%0000_000_111_000_000
+       00:E0B8  8D 05 04           sta    HIGH_BYTE color_data
+   75                             BORD_BLUE
+                                  stw     #$0100,color_reg
+       00:E0BB  A9 00              lda    LOW_BYTE #$0100
+       00:E0BD  8D 02 04           sta    LOW_BYTE color_reg
+       00:E0C0  A9 01              lda    HIGH_BYTE #$0100
+       00:E0C2  8D 03 04           sta    HIGH_BYTE color_reg
+                                  stw     #%0000_000_000_000_111,color_data
+       00:E0C5  A9 07              lda    LOW_BYTE #%0000_000_000_000_111
+       00:E0C7  8D 04 04           sta    LOW_BYTE color_data
+       00:E0CA  A9 00              lda    HIGH_BYTE #%0000_000_000_000_111
+       00:E0CC  8D 05 04           sta    HIGH_BYTE color_data
+   76                             SCREEN_ON
+       00:E0CF  03 05             st0  #5
+       00:E0D1  13 CC             st1   #$CC
+       00:E0D3  23 00             st2   #$00
+   77                     
+   78                             vreg    #6      ;Scanline compare register
+       00:E0D5  A9 06             lda     #6
+       00:E0D7  85 F7             sta     <_vreg
+       00:E0D9  8D 00 00          sta     video_reg
+   79                             stw             <hsync_line,video_data
+       00:E0DC  A5 00              lda    LOW_BYTE <hsync_line
+       00:E0DE  8D 02 00           sta    LOW_BYTE video_data
+       00:E0E1  A5 01              lda    HIGH_BYTE <hsync_line
+       00:E0E3  8D 03 00           sta    HIGH_BYTE video_data
+   80                             
+   81                     
+   82  00:E0E6            .loop                   ;Here's an infinite loop...
+   83  00:E0E6  80 FE             bra     .loop
+   84                     
+   85                     
+   86  00:E0E8            MY_VSYNC:
+   87                             BORD_RED
+                                  stw     #$0100,color_reg
+       00:E0E8  A9 00              lda    LOW_BYTE #$0100
+       00:E0EA  8D 02 04           sta    LOW_BYTE color_reg
+       00:E0ED  A9 01              lda    HIGH_BYTE #$0100
+       00:E0EF  8D 03 04           sta    HIGH_BYTE color_reg
+                                  stw     #%0000_000_000_111_000,color_data
+       00:E0F2  A9 38              lda    LOW_BYTE #%0000_000_000_111_000
+       00:E0F4  8D 04 04           sta    LOW_BYTE color_data
+       00:E0F7  A9 00              lda    HIGH_BYTE #%0000_000_000_111_000
+       00:E0F9  8D 05 04           sta    HIGH_BYTE color_data
+   88  00:E0FC  48                pha
+   89  00:E0FD  68                pla
+   90  00:E0FE  48                pha
+   91  00:E0FF  68                pla
+   92                             BORD_BLUE
+                                  stw     #$0100,color_reg
+       00:E100  A9 00              lda    LOW_BYTE #$0100
+       00:E102  8D 02 04           sta    LOW_BYTE color_reg
+       00:E105  A9 01              lda    HIGH_BYTE #$0100
+       00:E107  8D 03 04           sta    HIGH_BYTE color_reg
+                                  stw     #%0000_000_000_000_111,color_data
+       00:E10A  A9 07              lda    LOW_BYTE #%0000_000_000_000_111
+       00:E10C  8D 04 04           sta    LOW_BYTE color_data
+       00:E10F  A9 00              lda    HIGH_BYTE #%0000_000_000_000_111
+       00:E111  8D 05 04           sta    HIGH_BYTE color_data
+   93                             
+   94  00:E114  E6 03             inc     <vb_count
+   95  00:E116  8F 03 09          bbs0    <vb_count,.no_move
+   96                     
+   97                     
+   98                     ;---- increase scanline position
+   99  00:E119  FF 02 04          bbs7    <direction,.dec_line
+  100  00:E11C  D0 04             bne     .line_moved
+  101  00:E11E  80 02             bra     .line_moved
+  102                     ;----
+  103                     ;---- decrease scanline position
+  104  00:E120            .dec_line:
+  105  00:E120  D0 00             bne     .line_moved
+  106                     ;----
+  107  00:E122            .line_moved:
+  108  00:E122            .no_move:
+  109                     
+  110                             stw     #$005D,<_di
+       00:E122  A9 5D              lda    LOW_BYTE #$005D
+       00:E124  85 F0              sta    LOW_BYTE <_di
+       00:E126  A9 00              lda    HIGH_BYTE #$005D
+       00:E128  85 F1              sta    HIGH_BYTE <_di
+  111  00:E12A  20 99 FE          jsr     set_write
+  112  00:E12D  A5 01             lda     <hsync_line+1
+  113  00:E12F  20 BB E3          jsr     Print_Nyb
+  114  00:E132  A5 00             lda     <hsync_line
+  115  00:E134  20 AB E3          jsr     Print_Byte
+  116                     
+  117                             ; reset BYR and BXR
+  118                             vreg    #8      ;BYR
+       00:E137  A9 08             lda     #8
+       00:E139  85 F7             sta     <_vreg
+       00:E13B  8D 00 00          sta     video_reg
+  119                             stwz    video_data
+       00:E13E  9C 02 00           stz    LOW_BYTE video_data
+       00:E141  9C 03 00           stz    HIGH_BYTE video_data
+  120                             
+  121                             vreg    #7      ;BXR
+       00:E144  A9 07             lda     #7
+       00:E146  85 F7             sta     <_vreg
+       00:E148  8D 00 00          sta     video_reg
+  122                             stwz    video_data
+       00:E14B  9C 02 00           stz    LOW_BYTE video_data
+       00:E14E  9C 03 00           stz    HIGH_BYTE video_data
+  123                             
+  124                             ; reenable BG
+  125                             vreg    #5      ;CR
+       00:E151  A9 05             lda     #5
+       00:E153  85 F7             sta     <_vreg
+       00:E155  8D 00 00          sta     video_reg
+  126                             stw             #$00CC,video_data
+       00:E158  A9 CC              lda    LOW_BYTE #$00CC
+       00:E15A  8D 02 00           sta    LOW_BYTE video_data
+       00:E15D  A9 00              lda    HIGH_BYTE #$00CC
+       00:E15F  8D 03 00           sta    HIGH_BYTE video_data
+  127                             
+  128                             
+  129  00:E162  60                rts
+  130                     
+  131                     
+  132  00:E163            MY_HSYNC:
+  133                             BORD_WHITE
+                                  stw     #$0100,color_reg
+       00:E163  A9 00              lda    LOW_BYTE #$0100
+       00:E165  8D 02 04           sta    LOW_BYTE color_reg
+       00:E168  A9 01              lda    HIGH_BYTE #$0100
+       00:E16A  8D 03 04           sta    HIGH_BYTE color_reg
+                                  stw     #%0000_000_111_111_111,color_data
+       00:E16D  A9 FF              lda    LOW_BYTE #%0000_000_111_111_111
+       00:E16F  8D 04 04           sta    LOW_BYTE color_data
+       00:E172  A9 01              lda    HIGH_BYTE #%0000_000_111_111_111
+       00:E174  8D 05 04           sta    HIGH_BYTE color_data
+  134                             ;BG_CYAN
+  135                             ; load current direction value and inc for next time
+  136  00:E177  A5 02             lda     <direction
+  137  00:E179  E6 02             inc     <direction
+  138  00:E17B  29 01             and #DOWN
+  139                             ; if dir flag = 0, this is top line so: 1) set dir flag, 2) set hsync for bottom line int, 3) make BG grey 4) adjust BYR to 
+  140                             ; else 1) clear flag, 2) make BG black 3) adjust BYR to test flag latching leading
+  141  00:E17D  F0 03             beq     .top_line
+  142  00:E17F  4C 99 E2          jmp     BOT_LINE_ACTIONS
+  143                     
+  144  00:E182            .top_line       
+  145                             BG_CYAN
+                                  stwz    color_reg
+       00:E182  9C 02 04           stz    LOW_BYTE color_reg
+       00:E185  9C 03 04           stz    HIGH_BYTE color_reg
+                                  stw     #%0000_000_111_000_111,color_data
+       00:E188  A9 C7              lda    LOW_BYTE #%0000_000_111_000_111
+       00:E18A  8D 04 04           sta    LOW_BYTE color_data
+       00:E18D  A9 01              lda    HIGH_BYTE #%0000_000_111_000_111
+       00:E18F  8D 05 04           sta    HIGH_BYTE color_data
+  146                             stw     #BOT_LINE,<hsync_line
+       00:E192  A9 86              lda    LOW_BYTE #BOT_LINE
+       00:E194  85 00              sta    LOW_BYTE <hsync_line
+       00:E196  A9 00              lda    HIGH_BYTE #BOT_LINE
+       00:E198  85 01              sta    HIGH_BYTE <hsync_line
+  147                             vreg    #6      ;Scanline compare register
+       00:E19A  A9 06             lda     #6
+       00:E19C  85 F7             sta     <_vreg
+       00:E19E  8D 00 00          sta     video_reg
+  148                             stw             <hsync_line,video_data
+       00:E1A1  A5 00              lda    LOW_BYTE <hsync_line
+       00:E1A3  8D 02 00           sta    LOW_BYTE video_data
+       00:E1A6  A5 01              lda    HIGH_BYTE <hsync_line
+       00:E1A8  8D 03 00           sta    HIGH_BYTE video_data
+  149                             BORD_DKBLU
+                                  stw     #$0100,color_reg
+       00:E1AB  A9 00              lda    LOW_BYTE #$0100
+       00:E1AD  8D 02 04           sta    LOW_BYTE color_reg
+       00:E1B0  A9 01              lda    HIGH_BYTE #$0100
+       00:E1B2  8D 03 04           sta    HIGH_BYTE color_reg
+                                  stw     #%0000_000_000_000_100,color_data
+       00:E1B5  A9 04              lda    LOW_BYTE #%0000_000_000_000_100
+       00:E1B7  8D 04 04           sta    LOW_BYTE color_data
+       00:E1BA  A9 00              lda    HIGH_BYTE #%0000_000_000_000_100
+       00:E1BC  8D 05 04           sta    HIGH_BYTE color_data
+  150                             
+  151                             ; 455 cpu cycles per scanline
+  152                             ; adjust BYR to hide the red box 
+  153  00:E1BF  A2 30             ldx #$30        ;       0x30 gives 1 * 4 cy (no loop) + 0x2F * 6 cy (loops) = 286 cy  
+  154  00:E1C1            .top_line_delay
+  155  00:E1C1  CA                dex
+  156  00:E1C2  D0 FD             bne .top_line_delay 
+  157  00:E1C4  EA                nop
+  158                             
+  159                             ;BYR test on top line
+  160                             BG_GREY2        
+                                  stwz    color_reg
+       00:E1C5  9C 02 04           stz    LOW_BYTE color_reg
+       00:E1C8  9C 03 04           stz    HIGH_BYTE color_reg
+                                  stw     #%0000_000_010_010_010,color_data
+       00:E1CB  A9 92              lda    LOW_BYTE #%0000_000_010_010_010
+       00:E1CD  8D 04 04           sta    LOW_BYTE color_data
+       00:E1D0  A9 00              lda    HIGH_BYTE #%0000_000_010_010_010
+       00:E1D2  8D 05 04           sta    HIGH_BYTE color_data
+  161                             ; 1 nop max adjust BYR on time
+  162                             ; Comparison - expected result is previous line
+  163                             ; PCE      : 0, 1, = previous line; 2, 3, 4 = next line
+  164                             ; Mednafen : 0 = previous line, 1 = unstable, 2, 3, 4 = next line
+  165                             ; me:      : 0, 1, = previous line,  2, 3, 4 = next line
+  166  00:E1D5  EA                nop
+  167                             ;nop
+  168                             ;nop
+  169                             ;nop
+  170                             
+  171                             ; APPLY new BYR value to see top of red box     
+  172                             vreg    #8      ;BYR
+       00:E1D6  A9 08             lda     #8
+       00:E1D8  85 F7             sta     <_vreg
+       00:E1DA  8D 00 00          sta     video_reg
+  173                             stw             #TOP_BYR,video_data
+       00:E1DD  A9 5A              lda    LOW_BYTE #TOP_BYR
+       00:E1DF  8D 02 00           sta    LOW_BYTE video_data
+       00:E1E2  A9 00              lda    HIGH_BYTE #TOP_BYR
+       00:E1E4  8D 03 00           sta    HIGH_BYTE video_data
+  174                     
+  175                             ; BXR tests
+  176                             ; add more delay for another line and test BXR latch
+  177                             ; write a shift then remove it and make sure that second command is actioned 
+  178  00:E1E7  A2 44             ldx #$44        ;       0x44 gives 1 * 4 cy (no loop) + 0x43 * 6 cy (loops) = 406 cy  
+  179  00:E1E9            .bxr_left_delay
+  180  00:E1E9  CA                dex
+  181  00:E1EA  D0 FD             bne .bxr_left_delay 
+  182                             
+  183                             ; Supercede BXR value to avoid left shift of the red box        
+  184                             vreg    #7      ;BXR
+       00:E1EC  A9 07             lda     #7
+       00:E1EE  85 F7             sta     <_vreg
+       00:E1F0  8D 00 00          sta     video_reg
+  185                             stw             #LFT_BXR,video_data
+       00:E1F3  A9 08              lda    LOW_BYTE #LFT_BXR
+       00:E1F5  8D 02 00           sta    LOW_BYTE video_data
+       00:E1F8  A9 00              lda    HIGH_BYTE #LFT_BXR
+       00:E1FA  8D 03 00           sta    HIGH_BYTE video_data
+  186                             
+  187                             ; 1 nop max to adjust BXR on time
+  188                             ; Comparison - expected result is no shift
+  189                             ; PCE      : 0, 1, = no shift; 2, 3 = shift
+  190                             ; Mednafen : 0, 1, = no shift; 2, 3 = shift
+  191                             ; me:      : 0, 1, = no shift; 2, 3 = shift
+  192  00:E1FD  EA                nop
+  193                             ;nop
+  194                             ;nop
+  195                             ;nop
+  196                             ;nop
+  197                             ;nop
+  198                                     
+  199                             ; reset BXR
+  200                             vreg    #7      ;BXR
+       00:E1FE  A9 07             lda     #7
+       00:E200  85 F7             sta     <_vreg
+       00:E202  8D 00 00          sta     video_reg
+  201                             stwz    video_data
+       00:E205  9C 02 00           stz    LOW_BYTE video_data
+       00:E208  9C 03 00           stz    HIGH_BYTE video_data
+  202                     
+  203                             ; add more delay for another 3 lines and test BXR latch
+  204                             ; reset BXR, then add shift and make sure that second command is ignored 
+  205  00:E20B  A2 DB             ldx #$DB        ;       0x44 gives 1 * 4 cy (no loop) + 0x43 * 6 cy (loops) = 406 cy  
+  206  00:E20D            .bxr_right_delay
+  207  00:E20D  CA                dex
+  208  00:E20E  D0 FD             bne .bxr_right_delay 
+  209                     
+  210                             ; Second BXR is ignored to avoid left shift of the red box      
+  211                             vreg    #7      ;BXR
+       00:E210  A9 07             lda     #7
+       00:E212  85 F7             sta     <_vreg
+       00:E214  8D 00 00          sta     video_reg
+  212                             stwz    video_data
+       00:E217  9C 02 00           stz    LOW_BYTE video_data
+       00:E21A  9C 03 00           stz    HIGH_BYTE video_data
+  213                             
+  214                             ; 2 nops min to ignore wrong BXR latching
+  215                             ; Comparison - expected result is no shift
+  216                             ; PCE      : 0, 1 = shift; 2, 3 = no shift
+  217                             ; Mednafen : 0, 1, 2 = shift; 3 = no shift
+  218                             ; me:      : 0, 1 = shift; 2, 3 = no shift
+  219                             
+  220                             ;nop
+  221  00:E21D  EA                nop
+  222  00:E21E  EA                nop
+  223                             
+  224                             
+  225                             vreg    #7      ;BXR
+       00:E21F  A9 07             lda     #7
+       00:E221  85 F7             sta     <_vreg
+       00:E223  8D 00 00          sta     video_reg
+  226                             stw             #LFT_BXR,video_data
+       00:E226  A9 08              lda    LOW_BYTE #LFT_BXR
+       00:E228  8D 02 00           sta    LOW_BYTE video_data
+       00:E22B  A9 00              lda    HIGH_BYTE #LFT_BXR
+       00:E22D  8D 03 00           sta    HIGH_BYTE video_data
+  227                             
+  228  00:E230  EA                nop
+  229  00:E231  EA                nop
+  230  00:E232  EA                nop
+  231                                     
+  232                             ; reset BXR
+  233                             vreg    #7      ;BXR
+       00:E233  A9 07             lda     #7
+       00:E235  85 F7             sta     <_vreg
+       00:E237  8D 00 00          sta     video_reg
+  234                             stwz    video_data
+       00:E23A  9C 02 00           stz    LOW_BYTE video_data
+       00:E23D  9C 03 00           stz    HIGH_BYTE video_data
+  235                             
+  236                             ; CR tests
+  237                             ; add more delay for another 3 lines and test CR latch
+  238                             ; disable BG (bit 7) in CR, reaneble it and make sure that second command is actionned 
+  239  00:E240  A2 D3             ldx #$D3        ;       0x44 gives 1 * 4 cy (no loop) + 0x43 * 6 cy (loops) = 406 cy  
+  240  00:E242            .cr_left_delay
+  241  00:E242  CA                dex
+  242  00:E243  D0 FD             bne .cr_left_delay 
+  243                             
+  244                             ; disable BG
+  245                             vreg    #5      ;CR
+       00:E245  A9 05             lda     #5
+       00:E247  85 F7             sta     <_vreg
+       00:E249  8D 00 00          sta     video_reg
+  246                             stw             #$004C,video_data
+       00:E24C  A9 4C              lda    LOW_BYTE #$004C
+       00:E24E  8D 02 00           sta    LOW_BYTE video_data
+       00:E251  A9 00              lda    HIGH_BYTE #$004C
+       00:E253  8D 03 00           sta    HIGH_BYTE video_data
+  247                             
+  248                             ; 3 nops max to register BG enable
+  249                             ; Comparison - expected result is BG enabled
+  250                             ; PCE      : 0, 1, 2, 3 = enabled; 4, 5, 6 = disabled
+  251                             ; Mednafen : 0, 1, 2 = enabled; 3, 4 = unstable; 5, 6 = disabled
+  252                             ; me:      : 0, 1, 2, 3 = enabled; 4, 5, 6, 7, 8 = disabled
+  253  00:E256  EA                nop
+  254  00:E257  EA                nop
+  255  00:E258  EA                nop
+  256                             ;nop
+  257                             ;nop
+  258                              
+  259                             ; renable BG
+  260                             vreg    #5      ;CR
+       00:E259  A9 05             lda     #5
+       00:E25B  85 F7             sta     <_vreg
+       00:E25D  8D 00 00          sta     video_reg
+  261                             stw             #$00CC,video_data
+       00:E260  A9 CC              lda    LOW_BYTE #$00CC
+       00:E262  8D 02 00           sta    LOW_BYTE video_data
+       00:E265  A9 00              lda    HIGH_BYTE #$00CC
+       00:E267  8D 03 00           sta    HIGH_BYTE video_data
+  262                     
+  263                             ; add more delay for another 3 lines and test CR latch
+  264                             ; disable it and make sure that second command is ignored 
+  265  00:E26A  A2 DE             ldx #$DE        ;       0x44 gives 1 * 4 cy (no loop) + 0x43 * 6 cy (loops) = 406 cy  
+  266  00:E26C            .cr_right_delay
+  267  00:E26C  CA                dex
+  268  00:E26D  D0 FD             bne .cr_right_delay 
+  269                             
+  270                             ; 4 nops min to ignore BG disable
+  271                             ; Comparison - expected result is BG enabled
+  272                             ; PCE      : 0, 1, 2, 3 = disabled; 4, 5, 6 = enabled
+  273                             ; Mednafen : 0, 1, 2 = disabled; 3, 4 = unstable; 5, 6 = enabled
+  274                             ; me:      : 0, 1, 2, 3 = disabled; 4, 5, 6, 7, 8 = enabled
+  275  00:E26F  EA                nop
+  276  00:E270  EA                nop
+  277  00:E271  EA                nop
+  278  00:E272  EA                nop
+  279                             ;nop
+  280                             ;nop
+  281                             ;nop
+  282                             ;nop
+  283                                     
+  284                             ; disable BG
+  285                             vreg    #5      ;CR
+       00:E273  A9 05             lda     #5
+       00:E275  85 F7             sta     <_vreg
+       00:E277  8D 00 00          sta     video_reg
+  286                             stw             #$004C,video_data
+       00:E27A  A9 4C              lda    LOW_BYTE #$004C
+       00:E27C  8D 02 00           sta    LOW_BYTE video_data
+       00:E27F  A9 00              lda    HIGH_BYTE #$004C
+       00:E281  8D 03 00           sta    HIGH_BYTE video_data
+  287                                     
+  288  00:E284  EA                nop
+  289  00:E285  EA                nop
+  290  00:E286  EA                nop
+  291                             
+  292                              
+  293                             ; renable BG
+  294                             vreg    #5      ;CR
+       00:E287  A9 05             lda     #5
+       00:E289  85 F7             sta     <_vreg
+       00:E28B  8D 00 00          sta     video_reg
+  295                             stw             #$00CC,video_data
+       00:E28E  A9 CC              lda    LOW_BYTE #$00CC
+       00:E290  8D 02 00           sta    LOW_BYTE video_data
+       00:E293  A9 00              lda    HIGH_BYTE #$00CC
+       00:E295  8D 03 00           sta    HIGH_BYTE video_data
+  296                     
+  297                             
+  298                             
+  299  00:E298  60                rts
+  300                             
+  301                     
+  302  00:E299            BOT_LINE_ACTIONS:
+  303                             stw     #TOP_LINE,<hsync_line
+       00:E299  A9 77              lda    LOW_BYTE #TOP_LINE
+       00:E29B  85 00              sta    LOW_BYTE <hsync_line
+       00:E29D  A9 00              lda    HIGH_BYTE #TOP_LINE
+       00:E29F  85 01              sta    HIGH_BYTE <hsync_line
+  304                             vreg    #6      ;Scanline compare register
+       00:E2A1  A9 06             lda     #6
+       00:E2A3  85 F7             sta     <_vreg
+       00:E2A5  8D 00 00          sta     video_reg
+  305                             stw             <hsync_line,video_data
+       00:E2A8  A5 00              lda    LOW_BYTE <hsync_line
+       00:E2AA  8D 02 00           sta    LOW_BYTE video_data
+       00:E2AD  A5 01              lda    HIGH_BYTE <hsync_line
+       00:E2AF  8D 03 00           sta    HIGH_BYTE video_data
+  306  00:E2B2  A2 40             ldx #$40
+  307  00:E2B4            .bot_line_delay
+  308  00:E2B4  CA                dex
+  309  00:E2B5  D0 FD             bne .bot_line_delay 
+  310                             
+  311                             ;BYR test on bottom line
+  312                             ; 3 nops min to ignore BYR
+  313                             ; Comparison when adding nops   -- expected result is previous line
+  314                             ; PCE      : 0, 1, 2 = next line, 3, 4, 5 = previous line
+  315                             ; Mednafen : 0, 1 = next line; 2, 3 = unstable; 4, 5 = previous line
+  316                             ; me:      : 0, 1, 2 = next line, 3, 4, 5 = previous line
+  317  00:E2B7  EA                nop
+  318  00:E2B8  EA                nop
+  319  00:E2B9  EA                nop
+  320                             ;nop
+  321                             ;nop
+  322                     
+  323                             ; apply new BYR value to stop at bottom of red box      
+  324                             vreg    #8      ;BYR
+       00:E2BA  A9 08             lda     #8
+       00:E2BC  85 F7             sta     <_vreg
+       00:E2BE  8D 00 00          sta     video_reg
+  325                             stw             #BOT_BYR,video_data
+       00:E2C1  A9 BA              lda    LOW_BYTE #BOT_BYR
+       00:E2C3  8D 02 00           sta    LOW_BYTE video_data
+       00:E2C6  A9 00              lda    HIGH_BYTE #BOT_BYR
+       00:E2C8  8D 03 00           sta    HIGH_BYTE video_data
+  326                     
+  327  00:E2CB  A2 3B             ldx #$3B
+  328  00:E2CD            .grey_line_delay
+  329  00:E2CD  CA                dex
+  330  00:E2CE  D0 FD             bne .grey_line_delay 
+  331                     
+  332                             BG_CYAN
+                                  stwz    color_reg
+       00:E2D0  9C 02 04           stz    LOW_BYTE color_reg
+       00:E2D3  9C 03 04           stz    HIGH_BYTE color_reg
+                                  stw     #%0000_000_111_000_111,color_data
+       00:E2D6  A9 C7              lda    LOW_BYTE #%0000_000_111_000_111
+       00:E2D8  8D 04 04           sta    LOW_BYTE color_data
+       00:E2DB  A9 01              lda    HIGH_BYTE #%0000_000_111_000_111
+       00:E2DD  8D 05 04           sta    HIGH_BYTE color_data
+  333                     
+  334  00:E2E0  A2 48             ldx #$48
+  335  00:E2E2            .blue_line_delay
+  336  00:E2E2  CA                dex
+  337  00:E2E3  D0 FD             bne .blue_line_delay 
+  338                             
+  339                             BG_DKGRN
+                                  stwz    color_reg
+       00:E2E5  9C 02 04           stz    LOW_BYTE color_reg
+       00:E2E8  9C 03 04           stz    HIGH_BYTE color_reg
+                                  stw     #%0000_000_101_000_000,color_data
+       00:E2EB  A9 40              lda    LOW_BYTE #%0000_000_101_000_000
+       00:E2ED  8D 04 04           sta    LOW_BYTE color_data
+       00:E2F0  A9 01              lda    HIGH_BYTE #%0000_000_101_000_000
+       00:E2F2  8D 05 04           sta    HIGH_BYTE color_data
+  340                             
+  341                             ; disable BG
+  342                             vreg    #5      ;CR
+       00:E2F5  A9 05             lda     #5
+       00:E2F7  85 F7             sta     <_vreg
+       00:E2F9  8D 00 00          sta     video_reg
+  343                             stw             #$004C,video_data
+       00:E2FC  A9 4C              lda    LOW_BYTE #$004C
+       00:E2FE  8D 02 00           sta    LOW_BYTE video_data
+       00:E301  A9 00              lda    HIGH_BYTE #$004C
+       00:E303  8D 03 00           sta    HIGH_BYTE video_data
+  344                                     
+  345  00:E306  60                rts
+  346                     
+  347                     
+  348  00:E307            Intro_Text:
+  349                          ;0123456789ABCDEF0123456789ABCDEF
+  350  00:E307  42 59 52   .db "BYR LATCH TEST: RED BOX STABLE  "
+       00:E30A  20 4C 41  
+       00:E30D  54 43 48  
+       00:E310  20 54 45  
+       00:E313  53 54 3A  
+       00:E316  20 52 45  
+       00:E319  44 20 42  
+       00:E31C  4F 58 20  
+       00:E31F  53 54 41  
+       00:E322  42 4C 45  
+       00:E325  20 20     
+  351  00:E327  42 45 54   .db "BETWEEN BLUE LINES, TOP RCR: XXX"
+       00:E32A  57 45 45  
+       00:E32D  4E 20 42  
+       00:E330  4C 55 45  
+       00:E333  20 4C 49  
+       00:E336  4E 45 53  
+       00:E339  2C 20 54  
+       00:E33C  4F 50 20  
+       00:E33F  52 43 52  
+       00:E342  3A 20 58  
+       00:E345  58 58     
+  352  00:E347  42 58 52   .db "BXR LATCH TEST: NO X SHIFT      "
+       00:E34A  20 4C 41  
+       00:E34D  54 43 48  
+       00:E350  20 54 45  
+       00:E353  53 54 3A  
+       00:E356  20 4E 4F  
+       00:E359  20 58 20  
+       00:E35C  53 48 49  
+       00:E35F  46 54 20  
+       00:E362  20 20 20  
+       00:E365  20 20     
+  353  00:E367  43 52 20   .db "CR LATCH TEST: ALL LINES VISIBLE",0
+       00:E36A  4C 41 54  
+       00:E36D  43 48 20  
+       00:E370  54 45 53  
+       00:E373  54 3A 20  
+       00:E376  41 4C 4C  
+       00:E379  20 4C 49  
+       00:E37C  4E 45 53  
+       00:E37F  20 56 49  
+       00:E382  53 49 42  
+       00:E385  4C 45 00  
+  354                     
+  355                     
+  356                     ;============================================================
+  357                     ; Other includes / banks go here (for now)
+  358                     
+#[2]   INCLUDE/gfx_work.asm
+  359                             .include "INCLUDE/gfx_work.asm"
+    1                     ;
+    2                     ; Graphics routines that I write will go here
+    3                     ;
+    4                     
+    5  00:E388            Clear_BAT:
+    6                             vreg    #$00
+       00:E388  A9 00             lda     #$00
+       00:E38A  85 F7             sta     <_vreg
+       00:E38C  8D 00 00          sta     video_reg
+    7                             stwz    video_data
+       00:E38F  9C 02 00           stz    LOW_BYTE video_data
+       00:E392  9C 03 00           stz    HIGH_BYTE video_data
+    8                             vreg    #$02
+       00:E395  A9 02             lda     #$02
+       00:E397  85 F7             sta     <_vreg
+       00:E399  8D 00 00          sta     video_reg
+    9                     
+   10  00:E39C  A2 00             ldx     #LOW(BATWIDTH*BATHEIGHT)
+   11  00:E39E  A0 04             ldy     #HIGH(BATWIDTH*BATHEIGHT)
+   12  00:E3A0            .clrlp:
+   13  00:E3A0  13 20             st1     #$20    ;"whitespace character"
+   14  00:E3A2  23 01             st2     #$01
+   15  00:E3A4  CA                dex
+   16  00:E3A5  D0 F9             bne     .clrlp
+   17  00:E3A7  88                dey
+   18  00:E3A8  D0 F6             bne     .clrlp
+   19  00:E3AA  60                rts
+   20                     
+   21                     
+   22  00:E3AB            Print_Byte:     ;Prints a byte as HEX
+   23  00:E3AB  48                pha
+   24  00:E3AC  4A                lsr a
+   25  00:E3AD  4A                lsr a
+   26  00:E3AE  4A                lsr a
+   27  00:E3AF  4A                lsr a
+   28                                     ;store char # (0-F) of high nyb
+   29  00:E3B0  09 10             ora     #LOW(HEX_VRAM/16)
+   30  00:E3B2  8D 02 00          sta     video_data
+   31  00:E3B5  A9 01             lda     #$00+(HEX_VRAM/4096) ;font pal + tile no.
+   32  00:E3B7  8D 03 00          sta     video_data+1
+   33  00:E3BA  68                pla
+   34  00:E3BB            Print_Nyb:
+   35  00:E3BB  48                pha
+   36  00:E3BC  29 0F             and     #$0F    ;isolate low nyb.
+   37  00:E3BE  09 10             ora     #LOW(HEX_VRAM/16)
+   38  00:E3C0  8D 02 00          sta     video_data
+   39  00:E3C3  A9 01             lda     #$00+(HEX_VRAM/4096) ;font pal + tile no.
+   40  00:E3C5  8D 03 00          sta     video_data+1
+   41  00:E3C8  68                pla
+   42  00:E3C9  60                rts
+   43                     
+   44  00:E3CA            Print_Text:                     ;_si points to zero-terminated text
+   45  00:E3CA  20 99 FE          jsr     set_write       ;_di points to VRAM add.
+   46  00:E3CD            Print_Tex2:
+   47  00:E3CD  C2                cly
+   48  00:E3CE  A2 01             ldx     #$00+(ASCII_VRAM/4096)  ;Palette 0, $1000 VRAM
+   49  00:E3D0            .loop1:
+   50  00:E3D0  B1 EE             lda     [_si],Y
+   51  00:E3D2  F0 0E             beq     .finish
+   52  00:E3D4  8D 02 00          sta     video_data
+   53  00:E3D7  8E 03 00          stx     video_data+1
+   54                             incw    <_si
+       00:E3DA  E6 EE              inc    <_si              ; value at stated memory
+       00:E3DC  D0 02              bne    .x_00105           ; location
+       00:E3DE  E6 EF              inc    <_si+1
+       00:E3E0            .x_00105:
+   55  00:E3E0  80 EE             bra     .loop1
+   56  00:E3E2            .finish:
+   57  00:E3E2  60                rts
+   58                     
+   59                     
+   60  00:E3E3            Draw_BonkBG:    ;draws 16x16 tile box w/ graphics on-screen
+   61                             stw     #(1*$1000)+(BONKBG_VRAM/16),<_si ;Pal 1 + Tile No.
+       00:E3E3  A9 00              lda    LOW_BYTE #(1*$1000)+(BONKBG_VRAM/16)
+       00:E3E5  85 EE              sta    LOW_BYTE <_si
+       00:E3E7  A9 12              lda    HIGH_BYTE #(1*$1000)+(BONKBG_VRAM/16)
+       00:E3E9  85 EF              sta    HIGH_BYTE <_si
+   62                             stw     #$00E8,<_di
+       00:E3EB  A9 E8              lda    LOW_BYTE #$00E8
+       00:E3ED  85 F0              sta    LOW_BYTE <_di
+       00:E3EF  A9 00              lda    HIGH_BYTE #$00E8
+       00:E3F1  85 F1              sta    HIGH_BYTE <_di
+   63  00:E3F3  20 99 FE          jsr     set_write       ;set VRAM address
+   64                     
+   65  00:E3F6  A0 10             ldy     #16             ;outer loop (vert. lines)
+   66  00:E3F8            .bonklp0:
+   67  00:E3F8  A2 10             ldx     #16             ;inner loop (horiz. tiles)
+   68  00:E3FA            .bonklp1:
+   69                             stw     <_si,video_data ;lay down tile definition
+       00:E3FA  A5 EE              lda    LOW_BYTE <_si
+       00:E3FC  8D 02 00           sta    LOW_BYTE video_data
+       00:E3FF  A5 EF              lda    HIGH_BYTE <_si
+       00:E401  8D 03 00           sta    HIGH_BYTE video_data
+   70                             incw    <_si
+       00:E404  E6 EE              inc    <_si              ; value at stated memory
+       00:E406  D0 02              bne    .x_00109           ; location
+       00:E408  E6 EF              inc    <_si+1
+       00:E40A            .x_00109:
+   71  00:E40A  CA                dex
+   72  00:E40B  D0 ED             bne     .bonklp1
+   73                             addw    #BATWIDTH,<_di  ;then jump down to next line
+                0000              .if     (2 = 3)
+                                  .else
+                                   ; 2-arg mode
+                                   ;
+       00:E40D  18                 clc
+       00:E40E  A5 F0              lda    LOW_BYTE <_di
+       00:E410  69 20              adc    LOW_BYTE #BATWIDTH
+       00:E412  85 F0              sta    LOW_BYTE <_di
+       00:E414  A5 F1              lda    HIGH_BYTE <_di
+       00:E416  69 00              adc    HIGH_BYTE #BATWIDTH
+       00:E418  85 F1              sta    HIGH_BYTE <_di
+                                  .endif
+   74  00:E41A  20 99 FE          jsr     set_write
+   75  00:E41D  88                dey
+   76  00:E41E  D0 D8             bne     .bonklp0
+   77                     
+   78  00:E420  60                rts
+#[1]   cr_byr_bxr_latching_test.asm
+  360                     
+  361                     ;============================================================
+  362                     ;============================================================
+  363                     
+  364           0002              .bank $2
+  365           4000              .org $4000
+  366  02:4000            MyFont: .incchr "INCLUDE/parofont.pcx"
+  367  02:5000            SprCHR: .incspr "INCLUDE/bonkSP.pcx"
+  368                     
+  369  02:5400            FontPal: .incpal "INCLUDE/parofont.pcx",0,1
+  370  02:5420            BonkPal: .incpal "INCLUDE/bonkBG.pcx",0,1
+  371  02:5440            SPRPal:  .incpal "INCLUDE/bonkSP.pcx",0,1
+  372                     
+  373                     
+  374           0003              .bank $3
+  375           4000              .org $4000
+  376  03:4000            BonkBG: .incchr "INCLUDE/bonkBG.pcx"

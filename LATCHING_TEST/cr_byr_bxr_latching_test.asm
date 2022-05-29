@@ -245,15 +245,15 @@ MY_HSYNC:
 	vreg	#5	;CR
 	stw		#$004C,video_data
 	
-	; 3 nops max to register BG enable
+	; 4 nops max to register BG enable
 	; Comparison - expected result is BG enabled
-	; PCE	   : 0, 1, 2, 3 = enabled; 4, 5, 6 = disabled
-	; Mednafen : 0, 1, 2 = enabled; 3, 4 = unstable; 5, 6 = disabled
-	; me:	   : 0, 1, 2, 3 = enabled; 4, 5, 6, 7, 8 = disabled
+	; PCE	   : 0, 1, 2, 3, 4 = enabled; 5 = disabled
+	; Mednafen : 0, 1, 2, 3 = enabled; 4 = unstable; 5 = disabled
+	; me:	   : 0, 1, 2, 3, 4 = enabled; 5 = disabled
 	nop
 	nop
 	nop
-	;nop
+	nop
 	;nop
 	 
 	; renable BG
@@ -267,16 +267,14 @@ MY_HSYNC:
 	dex
 	bne .cr_right_delay 
 	
-	; 4 nops min to ignore BG disable
+	; 3 nops min to ignore BG disable
 	; Comparison - expected result is BG enabled
-	; PCE	   : 0, 1, 2, 3 = disabled; 4, 5, 6 = enabled
-	; Mednafen : 0, 1, 2 = disabled; 3, 4 = unstable; 5, 6 = enabled
-	; me:	   : 0, 1, 2, 3 = disabled; 4, 5, 6, 7, 8 = enabled
+	; PCE	   : 0, 1, 2 = disabled; 3, 4, 5, 6 = enabled
+	; Mednafen : 0, 1 = disabled; 2, 3 = unstable; 4, 5 = enabled
+	; me:	   : 0, 1, 2, 3 = disabled; 4, 5, 6 = enabled
 	nop
 	nop
 	nop
-	nop
-	;nop
 	;nop
 	;nop
 	;nop

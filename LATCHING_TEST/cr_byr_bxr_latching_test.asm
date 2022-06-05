@@ -18,8 +18,9 @@ CRB_LINE	= $0086
 CRA_LINE	= $008A
 BOT_LINE	= $0095
 
-TOP_BYR  	= $005A
-BOT_BYR  	= $005E
+
+TOP_BYR  	= $003F
+BOT_BYR  	= $0043
 
 LFT_BXR  	= $0008
 
@@ -27,12 +28,12 @@ CR_BGON		= $00CC
 CR_BGOFF	= $004C
 
 
-BYRB_TEST   = $01
-BYRA_TEST   = $02
-BXRB_TEST   = $03
-BXRA_TEST   = $04
-CRB_TEST    = $05
-CRA_TEST    = $06
+BYRB_TEST   = $00
+BYRA_TEST   = $01
+BXRB_TEST   = $02
+BXRA_TEST   = $03
+CRB_TEST    = $04
+CRA_TEST    = $05
 
 ;PAD 
 PAD_UP		= $10
@@ -46,13 +47,14 @@ PAD_II 		= $02
 NOP_ARRAY_LEN = $06
 NOPS_MAX      = $09	; 10 possible values
 
+TILEMAP_LEN	  = $400
+ASCII_VRAM    = $800
+ASCII_VRAM_LEN = $800
+BG_VRAM       = ASCII_VRAM + ASCII_VRAM_LEN
+BG_VRAM_LEN   = $200
 
-ASCII_VRAM	= $1000
-HEX_VRAM	= ASCII_VRAM+$100
-BONKBG_VRAM	= $2000
-BONKSP_VRAM	= $3000
+HEX_VRAM      = ASCII_VRAM+$100
 
-SATB_VRAM	= $0F00		;where to put the Sprite Table in VRAM
 
 BATWIDTH	= 32	;Set to 32, 64, or 128
 BATHEIGHT	= 32	;Set to 32 or 64.
@@ -61,7 +63,6 @@ BATHEIGHT	= 32	;Set to 32 or 64.
 
 ; Zero-page variables
 	.zp
-hsync_line:	.ds 2
 test_nb:	.ds 1
 pad_prev:   .ds 1
 pad_cur:    .ds 1
@@ -89,25 +90,19 @@ MAIN:
 	
 	stz <pad_prev
 	stz	<test_nb
-	stw	#BYRB_LINE,<hsync_line
-
-	map	BonkBG
-	vload	BONKBG_VRAM, BonkBG, $1000
-	map		MyFont
-	vload	ASCII_VRAM, MyFont, $0800
-	vload	BONKSP_VRAM, SprCHR, $0200	;Load 2 32x32 sprites
-
-	set_bgpal 	#0, FontPal, #2
-	set_sprpal 	#0, SPRPal, #1
-
+	
 	jsr	Clear_BAT
 
-	stw	#Intro_Text,<_si ;Point to text string
-	stw	#$0020,<_di	 ;Point on-screen
-	jsr	Print_Text
-
-	jsr	Draw_BonkBG
-
+	; load tile map, tiles and palette
+	map	FontPal
+	vload	$0000, Tilemap, TILEMAP_LEN
+	; font
+	set_bgpal 	#0, FontPal, #1
+	vload	ASCII_VRAM, Tiles, ASCII_VRAM_LEN
+	; bg tiles from Bonk
+	set_bgpal 	#1, BonkPal, #1
+	vload	BG_VRAM, BonkTiles, BG_VRAM_LEN
+	
 
 	BG_GREEN
 	BORD_BLUE
@@ -117,8 +112,40 @@ MAIN:
 	stw		#BYRB_LINE,video_data
 	
 
+; make this infinite loop 65 cycles long so that it gets repeated 7 times per line exactly
+; 1 line is 455 cpu cycles and 455 / 65 = 7. bra = 4, sax = 3 and fill the rest with 29 nops
 .loop            	;Here's an infinite loop...
-	bra	.loop
+	sax	; 3 cycles
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop	;10
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop	;20
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop
+	nop ; 29 - 29 * 2 = 58 cycles
+	bra	.loop	; 4 cycles
 
 
 MY_VSYNC:
@@ -128,13 +155,6 @@ MY_VSYNC:
 	pha
 	pla
 	BORD_BLUE
-
-	stw	#$007C,<_di
-	jsr	set_write
-	lda	<hsync_line+1
-	jsr	Print_Nyb
-	lda	<hsync_line
-	jsr	Print_Byte
 
 	; set RCR ready for next frame
 	vreg	#6	;RCR	
@@ -255,12 +275,18 @@ MY_VSYNC:
 	
 	rts
 
-
+; it takes 32 cycles to get from interrupt routine + 8 cycles for interrupt instruction = 40 cycles
+; loop 0 takes cycles with 0 nops
+; loop 1 takes 580 cycles with 0 nops
+; loop 2 takes 538 cycles with 0 nops
+; loop 3 takes  cycles with 0 nops
+; loop 4 takes  cycles with 0 nops
+; loop 5 takes  cycles with 0 nops
+; start 00:E21D, end 00:E525
 MY_HSYNC:
 	BORD_WHITE
 	;BG_CYAN
 	; load current test_nb value and inc for next time
-	inc 	<test_nb
 	lda 	<test_nb
 	cmp 	#BYRB_TEST
 	bne 	.check_test2
@@ -310,7 +336,7 @@ START_TEST1:
 	BORD_DKBLU
 	; 455 cpu cycles per scanline
 	; adjust BYR to hide the red box 
-	ldx #$27	;	0x30 gives 1 * 4 cy (no loop) + 0x2F * 6 cy (loops) = 286 cy  
+	ldx #$28	;	0x30 gives 1 * 4 cy (no loop) + 0x2F * 6 cy (loops) = 286 cy  
 .byrb_delay
 	dex
 	bne .byrb_delay 
@@ -329,7 +355,7 @@ START_TEST1:
 START_TEST2:
 	vreg	#6	;RCR
 	stw		#BXRB_LINE,video_data
-	ldx #$35
+	ldx #$36
 .byra_delay
 	dex
 	bne .byra_delay 
@@ -346,7 +372,7 @@ START_TEST2:
 START_TEST3:
 	vreg	#6	;RCR
 	stw		#BXRA_LINE,video_data
-	ldx #$2E
+	ldx #$2F
 .bxrb_delay
 	dex
 	bne .bxrb_delay 
@@ -365,7 +391,7 @@ START_TEST3:
 START_TEST4:
 	vreg	#6	;RCR
 	stw		#CRB_LINE,video_data
-	ldx #$31
+	ldx #$32
 .bxra_delay
 	dex
 	bne .bxra_delay 
@@ -382,7 +408,7 @@ START_TEST4:
 START_TEST5:
 	vreg	#6	;RCR
 	stw		#CRA_LINE,video_data
-	ldx #$24
+	ldx #$25
 .crb_delay
 	dex
 	bne .crb_delay 
@@ -406,7 +432,7 @@ START_TEST5:
 START_TEST6:
 	vreg	#6	;RCR
 	stw		#BOT_LINE,video_data
-	ldx #$2C
+	ldx #$2D
 .cra_delay
 	dex
 	bne .cra_delay 
@@ -418,6 +444,38 @@ START_TEST6:
 	BG_CYAN
 	lda <nop_count + 5	 
 	jmp INSERT_NOPS
+
+INSERT_NOPS:	; load acc with corresponding number of nops for the test  	
+	; jump to routine corresponding to number of nops
+	asl a
+	sax	
+	jmp [cycle_routine_array,x]	;WRONG as RTS does not work
+	
+EIGHT_NOPS:
+	nop		;2cycles
+SIX_NOPS:
+	nop		;2cycles
+FOUR_NOPS:
+	nop		;2cycles
+TWO_NOPS:
+	nop		;2cycles
+ZERO_NOPS:
+	nop		;2cycles
+	jmp RESUME_TESTING
+
+NINE_NOPS:
+	nop		;2cycles
+SEVEN_NOPS:
+	nop		;2cycles
+FIVE_NOPS:
+	nop		;2cycles
+THREE_NOPS:
+	nop		;2cycles
+ONE_NOP:
+	sax  	;3cycles
+	jmp RESUME_TESTING
+
+
 
 RESUME_TESTING:	
 	lda 	<test_nb
@@ -451,7 +509,7 @@ END_TEST1:
 	;Reenable just before latching in second part
 	vreg	#8	;BYR
 	stw		#TOP_BYR,video_data
-	rts
+	jmp SYNC_CPU
 END_TEST2:
 	;Add incorrect value in second part, a few nops and renable
 	vreg	#8	;BYR
@@ -466,12 +524,12 @@ END_TEST2:
 	nop
 	vreg	#8	;BYR
 	stw		#BOT_BYR,video_data
-	rts
+	jmp SYNC_CPU
 END_TEST3:
 	;Reset offset just before latching in second part
 	vreg	#7	;BXR
 	stw		#$0000,video_data
-	rts
+	jmp SYNC_CPU
 END_TEST4:
 	;Add incorrect value in second part, a few nops and correct it again
 	vreg	#7	;BXR
@@ -486,12 +544,12 @@ END_TEST4:
 	nop
 	vreg	#7	;BXR
 	stw		#$0000,video_data
-	rts
+	jmp SYNC_CPU
 END_TEST5:
 	;Renable offset in second part
 	vreg	#5	;CR
 	stw		#CR_BGON,video_data
-	rts
+	jmp SYNC_CPU
 END_TEST6:
 	;Add incorrect value in second part
 	vreg	#5	;CR
@@ -515,37 +573,20 @@ END_TEST6:
 	;Renable offset in second part
 	vreg	#5	;CR
 	stw		#CR_BGON,video_data
-	rts
-	
-INSERT_NOPS:	; load acc with corresponding number of nops for the test  	
-	; jump to routine corresponding to number of nops
-	asl a
-	sax	
-	jmp [cycle_routine_array,x]	;WRONG as RTS does not work
-	
-EIGHT_NOPS:
-	nop		;2cycles
-SIX_NOPS:
-	nop		;2cycles
-FOUR_NOPS:
-	nop		;2cycles
-TWO_NOPS:
-	nop		;2cycles
-ZERO_NOPS:
-	nop		;2cycles
-	jmp RESUME_TESTING
+	;jmp SYNC_CPU
 
-NINE_NOPS:
-	nop		;2cycles
-SEVEN_NOPS:
-	nop		;2cycles
-FIVE_NOPS:
-	nop		;2cycles
-THREE_NOPS:
-	nop		;2cycles
-ONE_NOP:
-	sax  	;3cycles
-	jmp RESUME_TESTING
+SYNC_CPU:
+	;sync test based on even/odd nop cycles added 
+	ldx 	<test_nb
+	lda		<nop_count,x
+	and 	#$01
+	bne		.leave_sync
+	sax
+.leave_sync		
+	inc 	<test_nb
+	rts
+
+
 
 cycle_routine_array:
 	.dw ZERO_NOPS, ONE_NOP, TWO_NOPS, THREE_NOPS, FOUR_NOPS, FIVE_NOPS,\
@@ -556,33 +597,20 @@ nop_pos_array:
 	.dw $00A2, $00A7, $00AD, $00B2, $00B8, $00BD 
 
 
-Intro_Text:
-     ;0123456789ABCDEF0123456789ABCDEF
- .db " - BYR, BXR, CR LATCH TEST -    "
- .db "ADJUST CYCLES BEFORE OR AFTER   "
- .db "LATCHING.               RCR=XXX "
- .db "   BYR        BXR        CR     "
- .db "B<00>A<00> B<00>A<00> B<00>A<00>",0
-
-
 ;============================================================
 ; Other includes / banks go here (for now)
 
 	.include "INCLUDE/gfx_work.asm"
-
 ;============================================================
 ;============================================================
 
 	.bank $2
 	.org $4000
-MyFont: .incchr "INCLUDE/parofont.pcx"
-SprCHR: .incspr "INCLUDE/bonkSP.pcx"
+FontPal: .incbin "INCLUDE/parofont.pal"
+Tiles:   .incbin "INCLUDE/parofont.tiles"
+BonkPal: .incbin "INCLUDE/bonkBG.pal"
+BonkTiles:   .incbin "INCLUDE/bonkBG.tiles"
+Tilemap: .incbin "INCLUDE/NewTilemap.tilemap"
 
-FontPal: .incpal "INCLUDE/parofont.pcx",0,1
-BonkPal: .incpal "INCLUDE/bonkBG.pcx",0,1
-SPRPal:	 .incpal "INCLUDE/bonkSP.pcx",0,1
 
-
-	.bank $3
-	.org $4000
-BonkBG: .incchr "INCLUDE/bonkBG.pcx"
+;BonkBG: .incchr "INCLUDE/bonkBG.pcx"

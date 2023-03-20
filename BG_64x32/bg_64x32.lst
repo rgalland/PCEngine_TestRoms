@@ -1,0 +1,276 @@
+#[1]   bg_64x32.asm
+   11                     ;--------------- END INCLUDES ------------------
+   12                     
+   13           0077      BYRB_LINE       = $0077
+   14           007A      BYRA_LINE       = $007A
+   15           007D      BXRB_LINE       = $007D
+   16           0080      BXRA_LINE       = $0080
+   17           0086      CRB_LINE        = $0086
+   18           008A      CRA_LINE        = $008A
+   19           0095      BOT_LINE        = $0095
+   20                     
+   21                     
+   22           003F      TOP_BYR         = $003F
+   23           0043      BOT_BYR         = $0043
+   24                     
+   25           0008      LFT_BXR         = $0008
+   26                     
+   27           00CC      CR_BGON         = $00CC
+   28           004C      CR_BGOFF        = $004C
+   29                     
+   30                     
+   31           0000      BYRB_TEST   = $00
+   32           0001      BYRA_TEST   = $01
+   33           0002      BXRB_TEST   = $02
+   34           0003      BXRA_TEST   = $03
+   35           0004      CRB_TEST    = $04
+   36           0005      CRA_TEST    = $05
+   37                     
+   38                     ;PAD 
+   39           0010      PAD_UP          = $10
+   40           0020      PAD_RIGHT       = $20
+   41           0040      PAD_DOWN        = $40
+   42           0080      PAD_LEFT        = $80
+   43           0001      PAD_I           = $01
+   44           0002      PAD_II          = $02
+   45                     
+   46                     
+   47           0006      NOP_ARRAY_LEN = $06
+   48           0009      NOPS_MAX      = $09     ; 10 possible values
+   49                     
+   50           0007      PAL_LEN      = 224 / 32
+   51                     
+   52           0000      BG_MAP_ADDR      = $0000
+   53           0E00      BG_MAP_LEN       = $0E00
+   54           0800      BG_VRAM_ADDR = $0800
+   55           4620      BG_VRAM_LEN  = $4620
+   56                     
+   57                     
+   58           0040      BATWIDTH        = 64    ;Set to 32, 64, or 128
+   59           0020      BATHEIGHT       = 32    ;Set to 32 or 64.
+   60                     
+   61           0000      ASCII_VRAM      = $0000
+   62           0100      HEX_VRAM      = ASCII_VRAM+$100
+   63                     
+   64                     ; Zero-page variables
+   65           2000              .zp
+   66  --:2000            pad_prev:   .ds 1
+   67  --:2001            pad_cur:    .ds 1
+   68                     
+   69                     
+   70                     ;==============================
+   71           0000              .code
+   72           0000              .bank   $0
+   73           E000              .org    $E000
+   74                     
+   75                     
+   76  00:E000            MAIN:
+   77                             INTS_OFF                ;DISABLE INTERRUPTS!
+       00:E000  03 05             st0  #5
+       00:E002  13 00             st1   #$00
+       00:E004  23 00             st2   #$00
+   78                             
+   79                             
+   80  00:E006  64 00             stz <pad_prev
+   81                             
+   82  00:E008  20 7A E0          jsr     Clear_BAT
+   83                     
+   84                             ; load bg tile map, tiles and palette
+   85                             map     BGPal
+       00:E00B  A9 02              lda   #bank(BGPal)        ; addressable memory
+       00:E00D  53 04              tam   #page(BGPal)
+   86                             map     BGTiles
+       00:E00F  A9 03              lda   #bank(BGTiles)        ; addressable memory
+       00:E011  53 08              tam   #page(BGTiles)
+   87                             map     BGTiles2
+       00:E013  A9 04              lda   #bank(BGTiles2)        ; addressable memory
+       00:E015  53 10              tam   #page(BGTiles2)
+   88                             map     BGTiles3
+       00:E017  A9 05              lda   #bank(BGTiles3)        ; addressable memory
+       00:E019  53 20              tam   #page(BGTiles3)
+   89                             map     BGTiles4
+       00:E01B  A9 06              lda   #bank(BGTiles4)        ; addressable memory
+       00:E01D  53 40              tam   #page(BGTiles4)
+   90                             
+   91                             vload           BG_MAP_ADDR, BGMap, #BG_MAP_LEN
+                0001              .if (3 = 3)
+                                   stw   #BG_MAP_ADDR,<_di
+       00:E01F  A9 00              lda    LOW_BYTE #BG_MAP_ADDR
+       00:E021  85 F0              sta    LOW_BYTE <_di
+       00:E023  A9 00              lda    HIGH_BYTE #BG_MAP_ADDR
+       00:E025  85 F1              sta    HIGH_BYTE <_di
+                                   stw   #BGMap,<_si
+       00:E027  A9 00              lda    LOW_BYTE #BGMap
+       00:E029  85 EE              sta    LOW_BYTE <_si
+       00:E02B  A9 50              lda    HIGH_BYTE #BGMap
+       00:E02D  85 EF              sta    HIGH_BYTE <_si
+                                   stw   ##BG_MAP_LEN,<_cx     ;WTF is this??? ERRORS!!! "stw   #BG_MAP_LEN,<_cx"
+       00:E02F  A9 00              lda    LOW_BYTE ##BG_MAP_LEN
+       00:E031  85 FC              sta    LOW_BYTE <_cx
+       00:E033  A9 0E              lda    HIGH_BYTE ##BG_MAP_LEN
+       00:E035  85 FD              sta    HIGH_BYTE <_cx
+                                  .else
+                                  .endif
+       00:E037  20 58 FE           jsr   load_vram
+   92                             set_bgpal       #0, BGPal, #PAL_LEN
+       00:E03A  A9 00              lda   #0
+       00:E03C  85 F8              sta   <_al
+                                   stw   #BGPal,<_si
+       00:E03E  A9 00              lda    LOW_BYTE #BGPal
+       00:E040  85 EE              sta    LOW_BYTE <_si
+       00:E042  A9 40              lda    HIGH_BYTE #BGPal
+       00:E044  85 EF              sta    HIGH_BYTE <_si
+                0002              .if 2
+       00:E046  A9 07              lda   #PAL_LEN
+                                  .else
+                                  .endif
+       00:E048  85 FC              sta   <_cl
+       00:E04A  20 00 FE           jsr   set_palette
+   93                             
+   94                             ; tia to transfer $4620 bytes from rom to vram
+   95                             ; set MAWR to 0 and then switch to VRAM DATA reg 
+   96  00:E04D  03 00             st0 #$0
+   97  00:E04F  13 00             st1 #LOW(BG_VRAM_ADDR)
+   98  00:E051  23 08             st2 #HIGH(BG_VRAM_ADDR)
+   99  00:E053  03 02             st0 #$2
+  100                             
+  101  00:E055  E3 00 60          tia BGTiles, $2, BG_VRAM_LEN
+       00:E058  02 00 20  
+       00:E05B  46        
+  102                             ;vload          BG_VRAM_ADDR, BGTiles, BG_VRAM_LEN
+  103                             
+  104                             ;BG_GREEN
+  105                             BORD_BLUE
+                                  stw     #$0100,color_reg
+       00:E05C  A9 00              lda    LOW_BYTE #$0100
+       00:E05E  8D 02 04           sta    LOW_BYTE color_reg
+       00:E061  A9 01              lda    HIGH_BYTE #$0100
+       00:E063  8D 03 04           sta    HIGH_BYTE color_reg
+                                  stw     #%0000_000_000_000_111,color_data
+       00:E066  A9 07              lda    LOW_BYTE #%0000_000_000_000_111
+       00:E068  8D 04 04           sta    LOW_BYTE color_data
+       00:E06B  A9 00              lda    HIGH_BYTE #%0000_000_000_000_111
+       00:E06D  8D 05 04           sta    HIGH_BYTE color_data
+  106                             SCREEN_ON
+       00:E070  03 05             st0  #5
+       00:E072  13 CC             st1   #$CC
+       00:E074  23 00             st2   #$00
+  107                     
+  108  00:E076            .loop                   ;Here's an infinite loop...
+  109  00:E076  80 FE             bra     .loop
+  110                             
+  111                     
+  112  00:E078            MY_VSYNC:
+  113  00:E078  60                rts
+  114                     
+  115  00:E079            MY_HSYNC:
+  116  00:E079  60                rts
+  117                     
+  118                     
+  119                     ;============================================================
+  120                     ; Other includes / banks go here (for now)
+  121                     
+#[2]   INCLUDE/gfx_work.asm
+  122                             .include "INCLUDE/gfx_work.asm"
+    1                     ;
+    2                     ; Graphics routines that I write will go here
+    3                     ;
+    4                     
+    5  00:E07A            Clear_BAT:
+    6                             vreg    #$00
+       00:E07A  A9 00             lda     #$00
+       00:E07C  85 F7             sta     <_vreg
+       00:E07E  8D 00 00          sta     video_reg
+    7                             stwz    video_data
+       00:E081  9C 02 00           stz    LOW_BYTE video_data
+       00:E084  9C 03 00           stz    HIGH_BYTE video_data
+    8                             vreg    #$02
+       00:E087  A9 02             lda     #$02
+       00:E089  85 F7             sta     <_vreg
+       00:E08B  8D 00 00          sta     video_reg
+    9                     
+   10  00:E08E  A2 00             ldx     #LOW(BATWIDTH*BATHEIGHT)
+   11  00:E090  A0 08             ldy     #HIGH(BATWIDTH*BATHEIGHT)
+   12  00:E092            .clrlp:
+   13  00:E092  13 20             st1     #$20    ;"whitespace character"
+   14  00:E094  23 01             st2     #$01
+   15  00:E096  CA                dex
+   16  00:E097  D0 F9             bne     .clrlp
+   17  00:E099  88                dey
+   18  00:E09A  D0 F6             bne     .clrlp
+   19  00:E09C  60                rts
+   20                     
+   21                     
+   22  00:E09D            Print_Byte:     ;Prints a byte as HEX
+   23  00:E09D  48                pha
+   24  00:E09E  4A                lsr a
+   25  00:E09F  4A                lsr a
+   26  00:E0A0  4A                lsr a
+   27  00:E0A1  4A                lsr a
+   28                                     ;store char # (0-F) of high nyb
+   29  00:E0A2  09 10             ora     #LOW(HEX_VRAM/16)
+   30  00:E0A4  8D 02 00          sta     video_data
+   31  00:E0A7  A9 10             lda     #$10+(HEX_VRAM/4096) ;font pal + tile no.
+   32  00:E0A9  8D 03 00          sta     video_data+1
+   33  00:E0AC  68                pla
+   34  00:E0AD            Print_Nyb:
+   35  00:E0AD  48                pha
+   36  00:E0AE  29 0F             and     #$0F    ;isolate low nyb.
+   37  00:E0B0  09 10             ora     #LOW(HEX_VRAM/16)
+   38  00:E0B2  8D 02 00          sta     video_data
+   39  00:E0B5  A9 10             lda     #$10+(HEX_VRAM/4096) ;font pal + tile no.
+   40  00:E0B7  8D 03 00          sta     video_data+1
+   41  00:E0BA  68                pla
+   42  00:E0BB  60                rts
+   43                     
+   44                     
+   45                     
+   46                     
+   47  00:E0BC            Print_Text:                     ;_si points to zero-terminated text
+   48  00:E0BC  20 99 FE          jsr     set_write       ;_di points to VRAM add.
+   49  00:E0BF            Print_Tex2:
+   50  00:E0BF  C2                cly
+   51  00:E0C0  A2 00             ldx     #$00+(ASCII_VRAM/4096)  ;Palette 0, $1000 VRAM
+   52  00:E0C2            .loop1:
+   53  00:E0C2  B1 EE             lda     [_si],Y
+   54  00:E0C4  F0 0E             beq     .finish
+   55  00:E0C6  8D 02 00          sta     video_data
+   56  00:E0C9  8E 03 00          stx     video_data+1
+   57                             incw    <_si
+       00:E0CC  E6 EE              inc    <_si              ; value at stated memory
+       00:E0CE  D0 02              bne    .x_00028           ; location
+       00:E0D0  E6 EF              inc    <_si+1
+       00:E0D2            .x_00028:
+   58  00:E0D2  80 EE             bra     .loop1
+   59  00:E0D4            .finish:
+   60  00:E0D4  60                rts
+   61                     
+   62                     
+#[1]   bg_64x32.asm
+  123                     ;============================================================
+  124                     ;============================================================
+  125           0002              .bank $2
+  126           4000              .org $4000
+  127  02:4000            BGPal:          .incbin "graphics/Waifu_locolor.pal"
+  128           5000              .org $5000
+  129  02:5000            BGMap:          .incbin "graphics/Waifu_locolor.map"
+  130                     
+  131           0003              .bank $3
+  132           6000              .org $6000
+  133  03:6000            BGTiles:        .incbin "graphics/Waifu_locolor.chr"
+  134                     
+  135           0004              .bank $4
+  136           8000              .org $8000
+  137  04:8000            BGTiles2:
+  138                     
+  139           0005              .bank $5
+  140           A000              .org $A000
+  141  05:A000            BGTiles3:
+  142                     
+  143           0006              .bank $6
+  144           C000              .org $C000
+  145  06:C000            BGTiles4:
+  146                     
+  147                     
+  148                     
+  149                     ;BonkBG: .incchr "INCLUDE/bonkBG.pcx"

@@ -74,7 +74,7 @@ vdc_table:
 	.db $07,$00,$00		; BXR   background horizontal scroll offset
 	.db $08,$00,$00		; BYR        "     vertical     "      "
 	.db $09
-	    .db ((BATWIDTH/64)*16)+((BATHEIGHT/64)*64)
+		.db ((BATWIDTH/64)*16)+((BATHEIGHT/64)*64)
 	        .db $00		; MWR   size of the virtual screen
 	.db $0A,$02,$02		; HSR +                 [$02,$02]
 	.db $0B,$1F,$04		; HDR | display size    [$1F,$04]

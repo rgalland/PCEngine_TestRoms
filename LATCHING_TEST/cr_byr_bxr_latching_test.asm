@@ -51,7 +51,7 @@ TILEMAP_LEN	  = $400
 ASCII_VRAM    = $800
 ASCII_VRAM_LEN = $800
 BG_VRAM       = ASCII_VRAM + ASCII_VRAM_LEN
-BG_VRAM_LEN   = $200
+BG_VRAM_LEN   = $400
 
 HEX_VRAM      = ASCII_VRAM+$100
 
@@ -95,13 +95,13 @@ MAIN:
 
 	; load tile map, tiles and palette
 	map	FontPal
-	vload	$0000, Tilemap, TILEMAP_LEN
+	vload	$0000, Tilemap, #TILEMAP_LEN
 	; font
 	set_bgpal 	#0, FontPal, #1
-	vload	ASCII_VRAM, Tiles, ASCII_VRAM_LEN
+	vload	ASCII_VRAM, Tiles, #ASCII_VRAM_LEN
 	; bg tiles from Bonk
 	set_bgpal 	#1, BonkPal, #1
-	vload	BG_VRAM, BonkTiles, BG_VRAM_LEN
+	vload	BG_VRAM, BonkTiles, #BG_VRAM_LEN
 	
 
 	BG_GREEN
@@ -606,11 +606,11 @@ nop_pos_array:
 
 	.bank $2
 	.org $4000
-FontPal: .incbin "INCLUDE/parofont.pal"
-Tiles:   .incbin "INCLUDE/parofont.tiles"
-BonkPal: .incbin "INCLUDE/bonkBG.pal"
-BonkTiles:   .incbin "INCLUDE/bonkBG.tiles"
-Tilemap: .incbin "INCLUDE/NewTilemap.tilemap"
+FontPal: .incbin "graphics/parofont.pal"
+Tiles:   .incbin "graphics/parofont.tiles"
+BonkPal: .incbin "graphics/bonkBG.pal"
+BonkTiles:   .incbin "graphics/bonkBG.tiles"
+Tilemap: .incbin "graphics/NewTilemap.tilemap"
 
 
 ;BonkBG: .incchr "INCLUDE/bonkBG.pcx"

@@ -75,12 +75,12 @@ vdc_table:
 	.db $07,$00,$00		; BXR   background horizontal scroll offset
 	.db $08,$00,$00		; BYR        "     vertical     "      "
 	.db $09
-	    .db ((BATWIDTH/64)*16)+((BATHEIGHT/64)*64)
+	    .db ((BATWIDTH/64)<<4)+((BATHEIGHT/64)<<6)
 	        .db $00		; MWR   size of the virtual screen
 	.db $0A,$02,$02		; HSR +                 [$02,$02]
 	.db $0B,$1F,$04		; HDR | display size    [$1F,$04]
 	.db $0C,$07,$0D		; VPR |
-	.db $0D,$DF,$00		; VDW |
+	.db $0D,$DF,$00		; VDW | $DF gives 224 lines
 	.db $0E,$03,$00		; VCR +
 	.db $0F,$00,$00		; DCR   DMA control register
 	.db $13,$00,$7F

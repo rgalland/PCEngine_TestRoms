@@ -42,7 +42,7 @@
    51           0800      ASCII_VRAM    = $800
    52           0800      ASCII_VRAM_LEN = $800
    53           1000      BG_VRAM       = ASCII_VRAM + ASCII_VRAM_LEN
-   54           0200      BG_VRAM_LEN   = $200
+   54           0400      BG_VRAM_LEN   = $400
    55                     
    56           0900      HEX_VRAM      = ASCII_VRAM+$100
    57                     
@@ -91,7 +91,7 @@
    97                             map     FontPal
        00:E016  A9 02              lda   #bank(FontPal)        ; addressable memory
        00:E018  53 04              tam   #page(FontPal)
-   98                             vload   $0000, Tilemap, TILEMAP_LEN
+   98                             vload   $0000, Tilemap, #TILEMAP_LEN
                 0001              .if (3 = 3)
                                    stw   #$0000,<_di
        00:E01A  A9 00              lda    LOW_BYTE #$0000
@@ -103,10 +103,10 @@
        00:E024  85 EE              sta    LOW_BYTE <_si
        00:E026  A9 54              lda    HIGH_BYTE #Tilemap
        00:E028  85 EF              sta    HIGH_BYTE <_si
-                                   stw   #TILEMAP_LEN,<_cx     ;WTF is this??? ERRORS!!! "stw   TILEMAP_LEN,<_cx"
-       00:E02A  A9 00              lda    LOW_BYTE #TILEMAP_LEN
+                                   stw   ##TILEMAP_LEN,<_cx     ;WTF is this??? ERRORS!!! "stw   #TILEMAP_LEN,<_cx"
+       00:E02A  A9 00              lda    LOW_BYTE ##TILEMAP_LEN
        00:E02C  85 FC              sta    LOW_BYTE <_cx
-       00:E02E  A9 04              lda    HIGH_BYTE #TILEMAP_LEN
+       00:E02E  A9 04              lda    HIGH_BYTE ##TILEMAP_LEN
        00:E030  85 FD              sta    HIGH_BYTE <_cx
                                   .else
                                   .endif
@@ -126,7 +126,7 @@
                                   .endif
        00:E043  85 FC              sta   <_cl
        00:E045  20 00 FE           jsr   set_palette
-  101                             vload   ASCII_VRAM, Tiles, ASCII_VRAM_LEN
+  101                             vload   ASCII_VRAM, Tiles, #ASCII_VRAM_LEN
                 0001              .if (3 = 3)
                                    stw   #ASCII_VRAM,<_di
        00:E048  A9 00              lda    LOW_BYTE #ASCII_VRAM
@@ -138,10 +138,10 @@
        00:E052  85 EE              sta    LOW_BYTE <_si
        00:E054  A9 40              lda    HIGH_BYTE #Tiles
        00:E056  85 EF              sta    HIGH_BYTE <_si
-                                   stw   #ASCII_VRAM_LEN,<_cx     ;WTF is this??? ERRORS!!! "stw   ASCII_VRAM_LEN,<_cx"
-       00:E058  A9 00              lda    LOW_BYTE #ASCII_VRAM_LEN
+                                   stw   ##ASCII_VRAM_LEN,<_cx     ;WTF is this??? ERRORS!!! "stw   #ASCII_VRAM_LEN,<_cx"
+       00:E058  A9 00              lda    LOW_BYTE ##ASCII_VRAM_LEN
        00:E05A  85 FC              sta    LOW_BYTE <_cx
-       00:E05C  A9 08              lda    HIGH_BYTE #ASCII_VRAM_LEN
+       00:E05C  A9 08              lda    HIGH_BYTE ##ASCII_VRAM_LEN
        00:E05E  85 FD              sta    HIGH_BYTE <_cx
                                   .else
                                   .endif
@@ -161,7 +161,7 @@
                                   .endif
        00:E071  85 FC              sta   <_cl
        00:E073  20 00 FE           jsr   set_palette
-  104                             vload   BG_VRAM, BonkTiles, BG_VRAM_LEN
+  104                             vload   BG_VRAM, BonkTiles, #BG_VRAM_LEN
                 0001              .if (3 = 3)
                                    stw   #BG_VRAM,<_di
        00:E076  A9 00              lda    LOW_BYTE #BG_VRAM
@@ -173,10 +173,10 @@
        00:E080  85 EE              sta    LOW_BYTE <_si
        00:E082  A9 50              lda    HIGH_BYTE #BonkTiles
        00:E084  85 EF              sta    HIGH_BYTE <_si
-                                   stw   #BG_VRAM_LEN,<_cx     ;WTF is this??? ERRORS!!! "stw   BG_VRAM_LEN,<_cx"
-       00:E086  A9 00              lda    LOW_BYTE #BG_VRAM_LEN
+                                   stw   ##BG_VRAM_LEN,<_cx     ;WTF is this??? ERRORS!!! "stw   #BG_VRAM_LEN,<_cx"
+       00:E086  A9 00              lda    LOW_BYTE ##BG_VRAM_LEN
        00:E088  85 FC              sta    LOW_BYTE <_cx
-       00:E08A  A9 02              lda    HIGH_BYTE #BG_VRAM_LEN
+       00:E08A  A9 04              lda    HIGH_BYTE ##BG_VRAM_LEN
        00:E08C  85 FD              sta    HIGH_BYTE <_cx
                                   .else
                                   .endif
@@ -1078,11 +1078,11 @@
   606                     
   607           0002              .bank $2
   608           4000              .org $4000
-  609  02:4000            FontPal: .incbin "INCLUDE/parofont.pal"
-  610  02:4020            Tiles:   .incbin "INCLUDE/parofont.tiles"
-  611  02:5020            BonkPal: .incbin "INCLUDE/bonkBG.pal"
-  612  02:5040            BonkTiles:   .incbin "INCLUDE/bonkBG.tiles"
-  613  02:5440            Tilemap: .incbin "INCLUDE/NewTilemap.tilemap"
+  609  02:4000            FontPal: .incbin "graphics/parofont.pal"
+  610  02:4020            Tiles:   .incbin "graphics/parofont.tiles"
+  611  02:5020            BonkPal: .incbin "graphics/bonkBG.pal"
+  612  02:5040            BonkTiles:   .incbin "graphics/bonkBG.tiles"
+  613  02:5440            Tilemap: .incbin "graphics/NewTilemap.tilemap"
   614                     
   615                     
   616                     ;BonkBG: .incchr "INCLUDE/bonkBG.pcx"

@@ -1,0 +1,223 @@
+#[1]   loading_screen.asm
+   11                       	;--------------- END INCLUDES ------------------
+   12                       	
+   13                       	;PAD 
+   14           0080        	PAD_LEFT	= $80
+   15           0040        	PAD_DOWN	= $40
+   16           0020        	PAD_RIGHT	= $20
+   17           0010        	PAD_UP		= $10
+   18           0008        	PAD_RUN 	= $08
+   19           0004        	PAD_SELECT	= $04
+   20           0002        	PAD_II 		= $02
+   21           0001        	PAD_I		= $01
+   22                       	
+   23           0001        	PAL_LEN      = 32 / 32
+   24                       	
+   25           0014        	MAP_WIDTH = 20
+   26           0002        	MAP_HEIGHT = 2
+   27           0006        	MAP_X_POS = 6
+   28           000D        	MAP_Y_POS = 13
+   29                       	
+   30           01A6        	BG_MAP_ADDR	 = MAP_X_POS + (MAP_Y_POS<<5)
+   31                       	
+   32           0028        	BG_MAP_LEN 	 = $0028
+   33           0800        	BG_VRAM_ADDR = $0800
+   34           04A0        	BG_VRAM_LEN  = $04A0
+   35                       	
+   36           0020        	BATWIDTH	= 32	;Set to 32, 64, or 128
+   37           0020        	BATHEIGHT	= 32	;Set to 32 or 64.
+   38                       	
+   39                       	; in this programme we will flash the loading screen text by changing colour 1 in VCE
+   40                       	; colours is GRB on 9 bits
+   41           01FF        	WHITE 		= ($7<<6) | ($7<<3) | $7
+   42           01F8        	YELLOW 		= ($7<<6) | ($7<<3) | $0
+   43           0138        	ORANGE 		= ($4<<6) | ($7<<3) | $0
+   44           0038        	RED 		= ($0<<6) | ($7<<3) | $0
+   45           0020        	DARK_RED 	= ($0<<6) | ($4<<3) | $0
+   46                       	
+   47                       	
+   48                       	; Zero-page variables
+   49           2000        		.zp
+   50  F8:2000              	frame_counter:   .ds 1
+   51                       	
+   52                       	
+   53                       	;==============================
+   54           0000        		.code
+   55           0000        		.bank	$0
+   56           F800        		.org	$F800
+   57                       	
+   58                       	; code must be as small as possible
+   59  00:F800              	BGTiles:	.incbin "graphics/loading.chr"
+   60  00:FCA0              	BGMap:		.incbin "graphics/loading.map"
+   61  00:FCF0              	BGPal: 		.incbin "graphics/loading.pal"
+   62                       	
+   63                       	
+   64  00:FD10              	MAIN:
+   65                       		INTS_OFF		;DISABLE INTERRUPTS!
+       00:FD10  03 05       		st0  #5
+       00:FD12  13 00       		st1   #$00
+       00:FD14  23 00       		st2   #$00
+   66                       		
+   67  00:FD16  9C 00 20    		stz frame_counter
+   68                       		
+   69  00:FD19  20 BE FD    		jsr	Clear_BAT
+   70                       	
+   71                       		; load bg tile map, tiles and palette
+   72                       		
+   73                       		vload		BG_MAP_ADDR, BGMap, #BG_MAP_LEN/2
+                0001        		.if (3 = 3)
+                            		 stw   #BG_MAP_ADDR,<_di
+       00:FD1C  A9 A6       		 lda	LOW_BYTE #BG_MAP_ADDR
+       00:FD1E  85 F0       		 sta	LOW_BYTE <_di
+       00:FD20  A9 01       		 lda	HIGH_BYTE #BG_MAP_ADDR
+       00:FD22  85 F1       		 sta	HIGH_BYTE <_di
+                            		 stw   #BGMap,<_si
+       00:FD24  A9 A0       		 lda	LOW_BYTE #BGMap
+       00:FD26  85 EE       		 sta	LOW_BYTE <_si
+       00:FD28  A9 FC       		 lda	HIGH_BYTE #BGMap
+       00:FD2A  85 EF       		 sta	HIGH_BYTE <_si
+                            		 stw   ##BG_MAP_LEN/2,<_cx	    ;WTF is this??? ERRORS!!! "stw   #BG_MAP_LEN/2,<_cx"
+       00:FD2C  A9 14       		 lda	LOW_BYTE ##BG_MAP_LEN/2
+       00:FD2E  85 FC       		 sta	LOW_BYTE <_cx	
+       00:FD30  A9 00       		 lda	HIGH_BYTE ##BG_MAP_LEN/2
+       00:FD32  85 FD       		 sta	HIGH_BYTE <_cx	
+                            		.else
+                            		.endif
+       00:FD34  20 D8 FE    		 jsr   load_vram
+   74                       		vload		BG_MAP_ADDR+32, BGMap+BG_MAP_LEN, #BG_MAP_LEN/2
+                0001        		.if (3 = 3)
+                            		 stw   #BG_MAP_ADDR+32,<_di
+       00:FD37  A9 C6       		 lda	LOW_BYTE #BG_MAP_ADDR+32
+       00:FD39  85 F0       		 sta	LOW_BYTE <_di
+       00:FD3B  A9 01       		 lda	HIGH_BYTE #BG_MAP_ADDR+32
+       00:FD3D  85 F1       		 sta	HIGH_BYTE <_di
+                            		 stw   #BGMap+BG_MAP_LEN,<_si
+       00:FD3F  A9 C8       		 lda	LOW_BYTE #BGMap+BG_MAP_LEN
+       00:FD41  85 EE       		 sta	LOW_BYTE <_si
+       00:FD43  A9 FC       		 lda	HIGH_BYTE #BGMap+BG_MAP_LEN
+       00:FD45  85 EF       		 sta	HIGH_BYTE <_si
+                            		 stw   ##BG_MAP_LEN/2,<_cx	    ;WTF is this??? ERRORS!!! "stw   #BG_MAP_LEN/2,<_cx"
+       00:FD47  A9 14       		 lda	LOW_BYTE ##BG_MAP_LEN/2
+       00:FD49  85 FC       		 sta	LOW_BYTE <_cx	
+       00:FD4B  A9 00       		 lda	HIGH_BYTE ##BG_MAP_LEN/2
+       00:FD4D  85 FD       		 sta	HIGH_BYTE <_cx	
+                            		.else
+                            		.endif
+       00:FD4F  20 D8 FE    		 jsr   load_vram
+   75                       		
+   76                       		set_bgpal 	#0, BGPal, #PAL_LEN
+       00:FD52  A9 00       		 lda   #0
+       00:FD54  85 F8       		 sta   <_al
+                            		 stw   #BGPal,<_si
+       00:FD56  A9 F0       		 lda	LOW_BYTE #BGPal
+       00:FD58  85 EE       		 sta	LOW_BYTE <_si
+       00:FD5A  A9 FC       		 lda	HIGH_BYTE #BGPal
+       00:FD5C  85 EF       		 sta	HIGH_BYTE <_si
+                0002        		.if 2
+       00:FD5E  A9 01       		 lda   #PAL_LEN
+                            		.else
+                            		.endif
+       00:FD60  85 FC       		 sta   <_cl
+       00:FD62  20 80 FE    		 jsr   set_palette
+   77                       		
+   78                       		; tia to transfer $4620 bytes from rom to vram
+   79                       		; set MAWR to 0 and then switch to VRAM DATA reg 
+   80  00:FD65  03 00       		st0 #$0
+   81  00:FD67  13 00       		st1 #LOW(BG_VRAM_ADDR)
+   82  00:FD69  23 08       		st2 #HIGH(BG_VRAM_ADDR)
+   83  00:FD6B  03 02       		st0 #$2
+   84                       		
+   85  00:FD6D  E3 00 F8 02 		tia BGTiles, $2, BG_VRAM_LEN
+       00:FD71  00 A0 04     
+   86                       		
+   87                       		BORD_BLUE
+                            		stw	#$0100,color_reg
+       00:FD74  A9 00       		 lda	LOW_BYTE #$0100
+       00:FD76  8D 02 04    		 sta	LOW_BYTE color_reg
+       00:FD79  A9 01       		 lda	HIGH_BYTE #$0100
+       00:FD7B  8D 03 04    		 sta	HIGH_BYTE color_reg
+                            		stw	#%0000_000_000_000_111,color_data
+       00:FD7E  A9 07       		 lda	LOW_BYTE #%0000_000_000_000_111
+       00:FD80  8D 04 04    		 sta	LOW_BYTE color_data
+       00:FD83  A9 00       		 lda	HIGH_BYTE #%0000_000_000_000_111
+       00:FD85  8D 05 04    		 sta	HIGH_BYTE color_data
+   88                       		SCREEN_ON
+       00:FD88  03 05       		st0  #5
+       00:FD8A  13 CC       		st1   #$CC
+       00:FD8C  23 00       		st2   #$00
+   89                       		
+   90  00:FD8E              	.loop            	;Here's an infinite loop...
+   91  00:FD8E  80 FE       		bra	.loop
+   92                       		
+   93                       	
+   94  00:FD90              	MY_VSYNC:
+   95  00:FD90  EE 00 20    		inc frame_counter
+   96  00:FD93  AD 00 20    		lda frame_counter
+   97  00:FD96  C9 78       		cmp #120
+   98  00:FD98  D0 05       		bne check_frame
+   99  00:FD9A  9C 00 20    		stz frame_counter
+  100  00:FD9D  A9 00       		lda #$00
+  101  00:FD9F              	check_frame:
+  102  00:FD9F  4A          		lsr
+  103  00:FDA0  4A          		lsr
+  104  00:FDA1  4A          		lsr
+  105  00:FDA2  0A          		asl
+  106  00:FDA3  AA          		tax
+  107  00:FDA4  E0 0B       		cpx #11
+  108  00:FDA6  B0 14       		bcs leave_my_vsync  
+  109  00:FDA8  A9 01       		lda	#$01
+  110  00:FDAA  8D 02 04    		sta	color_reg	; point at colour 1
+  111  00:FDAD  9C 03 04    		stz	color_reg+1	; to make sure we are changing bg colours and not sprite colours
+  112  00:FDB0  BD E1 FD    		lda title_colour_table,x
+  113  00:FDB3  8D 04 04    		sta color_data
+  114  00:FDB6  BD E2 FD    		lda title_colour_table+1,x
+  115  00:FDB9  8D 05 04    		sta color_data+1
+  116                       		
+  117  00:FDBC  60          	leave_my_vsync:	rts
+  118                       	
+  119  00:FDBD              	MY_HSYNC:
+  120  00:FDBD  60          		rts
+  121                       	
+  122                       	
+  123                       	;============================================================
+  124                       	; Other includes / banks go here (for now)
+  125                       	
+#[2]   INCLUDE/gfx_work.asm
+  126                       		.include "INCLUDE/gfx_work.asm"
+    1                       	;
+    2                       	; Graphics routines that I write will go here
+    3                       	;
+    4                       	
+    5  00:FDBE              	Clear_BAT:
+    6                       		vreg	#$00
+       00:FDBE  A9 00       		lda	#$00
+       00:FDC0  85 F7       		sta	<_vreg
+       00:FDC2  8D 00 00    		sta	video_reg
+    7                       		stwz	video_data
+       00:FDC5  9C 02 00    		 stz	LOW_BYTE video_data
+       00:FDC8  9C 03 00    		 stz	HIGH_BYTE video_data
+    8                       		vreg	#$02
+       00:FDCB  A9 02       		lda	#$02
+       00:FDCD  85 F7       		sta	<_vreg
+       00:FDCF  8D 00 00    		sta	video_reg
+    9                       	
+   10  00:FDD2  A2 00       		ldx	#LOW(BATWIDTH*BATHEIGHT)
+   11  00:FDD4  A0 04       		ldy     #HIGH(BATWIDTH*BATHEIGHT)
+   12  00:FDD6              	.clrlp:
+   13  00:FDD6  13 20       		st1	#$20	;"whitespace character"
+   14  00:FDD8  23 01       		st2	#$01
+   15  00:FDDA  CA          		dex
+   16  00:FDDB  D0 F9       		bne     .clrlp
+   17  00:FDDD  88          		dey
+   18  00:FDDE  D0 F6       		bne	.clrlp
+   19  00:FDE0  60          		rts
+   20                       	
+#[1]   loading_screen.asm
+  127                       	;============================================================
+  128  00:FDE1              	title_colour_table:
+  129  00:FDE1  F8 01       		.dw YELLOW, ORANGE, RED, DARK_RED, WHITE 
+       00:FDE3  38 01        
+       00:FDE5  38 00        
+       00:FDE7  20 00        
+       00:FDE9  FF 01        
+  130                       		

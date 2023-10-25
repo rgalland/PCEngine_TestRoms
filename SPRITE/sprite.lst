@@ -77,7 +77,7 @@
        00:E00C  9C 03 20    		 stz	HIGH_BYTE xpos
    82  00:E00F  9C 04 20    		stz ypos
    83                       		
-   84  00:E012  20 84 E1    		jsr	Clear_BAT
+   84  00:E012  20 ED E1    		jsr	Clear_BAT
    85                       	
    86                       		; palette and sprite tiles stored in 1 bank
    87                       		map	SpritePal
@@ -231,157 +231,214 @@
   198  00:E10B              	test_PAD_DOWN:
   199  00:E10B  AD 01 20    		lda pad_cur
   200  00:E10E  89 40       		bit #PAD_DOWN
-  201  00:E110  F0 10       		beq test_PAD_UP
+  201  00:E110  F0 1F       		beq test_PAD_UP
   202  00:E112  AD 00 22    		lda satb	;	yl 
   203  00:E115  C9 F0       		cmp #MAX_Y
-  204  00:E117  B0 09       		bcs	test_PAD_UP	;
-  205  00:E119  EE 00 22    		inc satb+8*0
-  206  00:E11C  EE 08 22    		inc satb+8*1
-  207  00:E11F  EE 10 22    		inc satb+8*2
+  204  00:E117  B0 18       		bcs	test_PAD_UP	;
+  205                       		incw satb+8*0	;	yl
+       00:E119  EE 00 22    		 inc	satb+8*0			; value at stated memory
+       00:E11C  D0 03       		 bne	.x_00019		; location
+       00:E11E  EE 01 22    		 inc	satb+8*0	+1
+       00:E121              	.x_00019:
+  206                       		incw satb+8*1
+       00:E121  EE 08 22    		 inc	satb+8*1		; value at stated memory
+       00:E124  D0 03       		 bne	.x_00020		; location
+       00:E126  EE 09 22    		 inc	satb+8*1+1
+       00:E129              	.x_00020:
+  207                       		incw satb+8*2
+       00:E129  EE 10 22    		 inc	satb+8*2		; value at stated memory
+       00:E12C  D0 03       		 bne	.x_00021		; location
+       00:E12E  EE 11 22    		 inc	satb+8*2+1
+       00:E131              	.x_00021:
   208                       		
-  209  00:E122              	test_PAD_UP:
-  210  00:E122  AD 01 20    		lda pad_cur
-  211  00:E125  89 10       		bit #PAD_UP
-  212  00:E127  F0 10       		beq test_PAD_RIGHT
-  213  00:E129  AD 00 22    		lda satb	;	yl 
-  214  00:E12C  C9 40       		cmp #MIN_Y
-  215  00:E12E  F0 09       		beq	test_PAD_RIGHT	;
-  216  00:E130  CE 00 22    		dec satb+8*0
-  217  00:E133  CE 08 22    		dec satb+8*1
-  218  00:E136  CE 10 22    		dec satb+8*2
+  209  00:E131              	test_PAD_UP:
+  210  00:E131  AD 01 20    		lda pad_cur
+  211  00:E134  89 10       		bit #PAD_UP
+  212  00:E136  F0 3A       		beq test_PAD_RIGHT
+  213  00:E138  AD 00 22    		lda satb	;	yl 
+  214  00:E13B  C9 40       		cmp #MIN_Y
+  215  00:E13D  F0 33       		beq	test_PAD_RIGHT	;
+  216                       		decw satb+8*0	;	yl
+       00:E13F  38          		 sec			; value at stated memory
+       00:E140  AD 00 22    		 lda	satb+8*0			; location
+       00:E143  E9 01       		 sbc	#1
+       00:E145  8D 00 22    		 sta	satb+8*0	
+       00:E148  AD 01 22    		 lda	satb+8*0	+1
+       00:E14B  E9 00       		 sbc	#0
+       00:E14D  8D 01 22    		 sta	satb+8*0	+1
+  217                       		decw satb+8*1
+       00:E150  38          		 sec			; value at stated memory
+       00:E151  AD 08 22    		 lda	satb+8*1		; location
+       00:E154  E9 01       		 sbc	#1
+       00:E156  8D 08 22    		 sta	satb+8*1
+       00:E159  AD 09 22    		 lda	satb+8*1+1
+       00:E15C  E9 00       		 sbc	#0
+       00:E15E  8D 09 22    		 sta	satb+8*1+1
+  218                       		decw satb+8*2
+       00:E161  38          		 sec			; value at stated memory
+       00:E162  AD 10 22    		 lda	satb+8*2		; location
+       00:E165  E9 01       		 sbc	#1
+       00:E167  8D 10 22    		 sta	satb+8*2
+       00:E16A  AD 11 22    		 lda	satb+8*2+1
+       00:E16D  E9 00       		 sbc	#0
+       00:E16F  8D 11 22    		 sta	satb+8*2+1
   219                       		
-  220  00:E139              	test_PAD_RIGHT:
-  221  00:E139  AD 01 20    		lda pad_cur
-  222  00:E13C  89 20       		bit #PAD_RIGHT
-  223  00:E13E  F0 19       		beq test_PAD_LEFT
-  224  00:E140  AD 03 22    		lda satb+3	;	xh 
-  225  00:E143  D0 14       		bne test_PAD_LEFT	; MAX_X	= $100	; Maximum xpos for spr
-  226  00:E145  EE 02 22    		inc satb+2+8*0	; xl
-  227  00:E148  EE 0A 22    		inc satb+2+8*1
-  228  00:E14B  EE 12 22    		inc satb+2+8*2
-  229  00:E14E  D0 09       		bne test_PAD_LEFT
-  230  00:E150  EE 03 22    		inc satb+3+8*0	; xh
-  231  00:E153  EE 0B 22    		inc satb+3+8*1
-  232  00:E156  EE 13 22    		inc satb+3+8*2
-  233                       				
-  234  00:E159              	test_PAD_LEFT:	
-  235  00:E159  AD 01 20    		lda pad_cur
-  236  00:E15C  89 80       		bit #PAD_LEFT
-  237  00:E15E  F0 1F       		beq update_vram
-  238  00:E160  38          		sec
-  239  00:E161  AD 02 22    		lda satb+2	;	xl 
-  240  00:E164  E9 20       		sbc #MIN_X
-  241  00:E166  AD 03 22    		lda satb+3	;	xh
-  242  00:E169  E9 00       		sbc #$0
-  243  00:E16B  90 12       		bcc update_vram
-  244  00:E16D  9C 03 22    		stz satb+3+8*0	;	xh
-  245  00:E170  9C 0B 22    		stz satb+3+8*1	;	xh
-  246  00:E173  9C 13 22    		stz satb+3+8*2	;	xh
-  247  00:E176  CE 02 22    		dec satb+2+8*0	; xl
-  248  00:E179  CE 0A 22    		dec satb+2+8*1
-  249  00:E17C  CE 12 22    		dec satb+2+8*2
-  250                       	
-  251                       				
-  252  00:E17F              	update_vram:
-  253  00:E17F  20 C8 E0    		jsr copy_satb_to_vram
-  254                       		; save crrent rreading to previous reading for next interrupt
-  255  00:E182  60          		rts
-  256                       	
-  257  00:E183              	MY_HSYNC:
-  258  00:E183  60          		rts
-  259                       	
-  260                       	
-  261                       	;============================================================
-  262                       	; Other includes / banks go here (for now)
-  263                       	
+  220  00:E172              	test_PAD_RIGHT:
+  221  00:E172  AD 01 20    		lda pad_cur
+  222  00:E175  89 20       		bit #PAD_RIGHT
+  223  00:E177  F0 31       		beq test_PAD_LEFT
+  224  00:E179  AD 03 22    		lda satb+3	;	xh 
+  225  00:E17C  D0 2C       		bne test_PAD_LEFT	; MAX_X	= $100	; Maximum xpos for spr
+  226                       		; unflip sprite horizontally
+  227  00:E17E  A9 F7       		lda #$F7	; sprite x mirror flag in sprite atribute MSB
+  228  00:E180  2D 07 22    		and satb+7+8*0	;	or flag to sprite attributes MSB
+  229  00:E183  8D 07 22    		sta satb+7+8*0	; save value back into memory 
+  230  00:E186  A9 F7       		lda #$F7	; sprite x mirror flag in sprite atribute MSB
+  231  00:E188  2D 0F 22    		and satb+7+8*1	;	or flag to sprite attributes MSB
+  232  00:E18B  8D 0F 22    		sta satb+7+8*1	; save value back into memory 
+  233  00:E18E  A9 F7       		lda #$F7	; sprite x mirror flag in sprite atribute MSB
+  234  00:E190  2D 17 22    		and satb+7+8*2	;	or flag to sprite attributes MSB
+  235  00:E193  8D 17 22    		sta satb+7+8*2	; save value back into memory 
+  236                       		; inc x position of all 3 sprites
+  237  00:E196  EE 02 22    		inc satb+2+8*0	; xl
+  238  00:E199  EE 0A 22    		inc satb+2+8*1
+  239  00:E19C  EE 12 22    		inc satb+2+8*2
+  240  00:E19F  D0 09       		bne test_PAD_LEFT
+  241  00:E1A1  EE 03 22    		inc satb+3+8*0	; xh
+  242  00:E1A4  EE 0B 22    		inc satb+3+8*1
+  243  00:E1A7  EE 13 22    		inc satb+3+8*2
+  244                       		
+  245                       				
+  246  00:E1AA              	test_PAD_LEFT:	
+  247  00:E1AA  AD 01 20    		lda pad_cur
+  248  00:E1AD  89 80       		bit #PAD_LEFT
+  249  00:E1AF  F0 37       		beq update_vram
+  250  00:E1B1  38          		sec
+  251  00:E1B2  AD 02 22    		lda satb+2	;	xl 
+  252  00:E1B5  E9 20       		sbc #MIN_X
+  253  00:E1B7  AD 03 22    		lda satb+3	;	xh
+  254  00:E1BA  E9 00       		sbc #$0
+  255  00:E1BC  90 2A       		bcc update_vram
+  256                       		; inc x position of all 3 sprites
+  257  00:E1BE  9C 03 22    		stz satb+3+8*0	;	xh
+  258  00:E1C1  9C 0B 22    		stz satb+3+8*1	;	xh
+  259  00:E1C4  9C 13 22    		stz satb+3+8*2	;	xh
+  260  00:E1C7  CE 02 22    		dec satb+2+8*0	; xl
+  261  00:E1CA  CE 0A 22    		dec satb+2+8*1
+  262  00:E1CD  CE 12 22    		dec satb+2+8*2
+  263                       		; flip sprite horizontally
+  264  00:E1D0  A9 08       		lda #$08	; sprite x mirror flag in sprite atribute MSB
+  265  00:E1D2  0D 07 22    		ora satb+7+8*0	;	or flag to sprite attributes MSB
+  266  00:E1D5  8D 07 22    		sta satb+7+8*0	; save value back into memory 
+  267  00:E1D8  A9 08       		lda #$08	; sprite x mirror flag in sprite atribute MSB
+  268  00:E1DA  0D 0F 22    		ora satb+7+8*1	;	or flag to sprite attributes MSB
+  269  00:E1DD  8D 0F 22    		sta satb+7+8*1	; save value back into memory 
+  270  00:E1E0  A9 08       		lda #$08	; sprite x mirror flag in sprite atribute MSB
+  271  00:E1E2  0D 17 22    		ora satb+7+8*2	;	or flag to sprite attributes MSB
+  272  00:E1E5  8D 17 22    		sta satb+7+8*2	; save value back into memory 
+  273                       		
+  274                       	
+  275                       				
+  276  00:E1E8              	update_vram:
+  277  00:E1E8  20 C8 E0    		jsr copy_satb_to_vram
+  278                       		; save crrent rreading to previous reading for next interrupt
+  279  00:E1EB  60          		rts
+  280                       	
+  281  00:E1EC              	MY_HSYNC:
+  282  00:E1EC  60          		rts
+  283                       	
+  284                       	
+  285                       	;============================================================
+  286                       	; Other includes / banks go here (for now)
+  287                       	
 #[2]   INCLUDE/gfx_work.asm
-  264                       		.include "INCLUDE/gfx_work.asm"
+  288                       		.include "INCLUDE/gfx_work.asm"
     1                       	;
     2                       	; Graphics routines that I write will go here
     3                       	;
     4                       	
-    5  00:E184              	Clear_BAT:
+    5  00:E1ED              	Clear_BAT:
     6                       		vreg	#$00
-       00:E184  A9 00       		lda	#$00
-       00:E186  85 F7       		sta	<_vreg
-       00:E188  8D 00 00    		sta	video_reg
+       00:E1ED  A9 00       		lda	#$00
+       00:E1EF  85 F7       		sta	<_vreg
+       00:E1F1  8D 00 00    		sta	video_reg
     7                       		stwz	video_data
-       00:E18B  9C 02 00    		 stz	LOW_BYTE video_data
-       00:E18E  9C 03 00    		 stz	HIGH_BYTE video_data
+       00:E1F4  9C 02 00    		 stz	LOW_BYTE video_data
+       00:E1F7  9C 03 00    		 stz	HIGH_BYTE video_data
     8                       		vreg	#$02
-       00:E191  A9 02       		lda	#$02
-       00:E193  85 F7       		sta	<_vreg
-       00:E195  8D 00 00    		sta	video_reg
+       00:E1FA  A9 02       		lda	#$02
+       00:E1FC  85 F7       		sta	<_vreg
+       00:E1FE  8D 00 00    		sta	video_reg
     9                       	
-   10  00:E198  A2 00       		ldx	#LOW(BATWIDTH*BATHEIGHT)
-   11  00:E19A  A0 04       		ldy     #HIGH(BATWIDTH*BATHEIGHT)
-   12  00:E19C              	.clrlp:
-   13  00:E19C  13 20       		st1	#$20	;"whitespace character"
-   14  00:E19E  23 01       		st2	#$01
-   15  00:E1A0  CA          		dex
-   16  00:E1A1  D0 F9       		bne     .clrlp
-   17  00:E1A3  88          		dey
-   18  00:E1A4  D0 F6       		bne	.clrlp
-   19  00:E1A6  60          		rts
+   10  00:E201  A2 00       		ldx	#LOW(BATWIDTH*BATHEIGHT)
+   11  00:E203  A0 04       		ldy     #HIGH(BATWIDTH*BATHEIGHT)
+   12  00:E205              	.clrlp:
+   13  00:E205  13 20       		st1	#$20	;"whitespace character"
+   14  00:E207  23 01       		st2	#$01
+   15  00:E209  CA          		dex
+   16  00:E20A  D0 F9       		bne     .clrlp
+   17  00:E20C  88          		dey
+   18  00:E20D  D0 F6       		bne	.clrlp
+   19  00:E20F  60          		rts
    20                       	
    21                       	
-   22  00:E1A7              	Print_Byte:	;Prints a byte as HEX
-   23  00:E1A7  48          		pha
-   24  00:E1A8  4A          		lsr a
-   25  00:E1A9  4A          		lsr a
-   26  00:E1AA  4A          		lsr a
-   27  00:E1AB  4A          		lsr a
+   22  00:E210              	Print_Byte:	;Prints a byte as HEX
+   23  00:E210  48          		pha
+   24  00:E211  4A          		lsr a
+   25  00:E212  4A          		lsr a
+   26  00:E213  4A          		lsr a
+   27  00:E214  4A          		lsr a
    28                       			;store char # (0-F) of high nyb
-   29  00:E1AC  09 10       		ora	#LOW(HEX_VRAM/16)
-   30  00:E1AE  8D 02 00    		sta	video_data
-   31  00:E1B1  A9 10       		lda	#$10+(HEX_VRAM/4096) ;font pal + tile no.
-   32  00:E1B3  8D 03 00    		sta	video_data+1
-   33  00:E1B6  68          		pla
-   34  00:E1B7              	Print_Nyb:
-   35  00:E1B7  48          		pha
-   36  00:E1B8  29 0F       		and	#$0F	;isolate low nyb.
-   37  00:E1BA  09 10       		ora	#LOW(HEX_VRAM/16)
-   38  00:E1BC  8D 02 00    		sta	video_data
-   39  00:E1BF  A9 10       		lda	#$10+(HEX_VRAM/4096) ;font pal + tile no.
-   40  00:E1C1  8D 03 00    		sta	video_data+1
-   41  00:E1C4  68          		pla
-   42  00:E1C5  60          		rts
+   29  00:E215  09 10       		ora	#LOW(HEX_VRAM/16)
+   30  00:E217  8D 02 00    		sta	video_data
+   31  00:E21A  A9 10       		lda	#$10+(HEX_VRAM/4096) ;font pal + tile no.
+   32  00:E21C  8D 03 00    		sta	video_data+1
+   33  00:E21F  68          		pla
+   34  00:E220              	Print_Nyb:
+   35  00:E220  48          		pha
+   36  00:E221  29 0F       		and	#$0F	;isolate low nyb.
+   37  00:E223  09 10       		ora	#LOW(HEX_VRAM/16)
+   38  00:E225  8D 02 00    		sta	video_data
+   39  00:E228  A9 10       		lda	#$10+(HEX_VRAM/4096) ;font pal + tile no.
+   40  00:E22A  8D 03 00    		sta	video_data+1
+   41  00:E22D  68          		pla
+   42  00:E22E  60          		rts
    43                       	
    44                       	
    45                       	
    46                       	
-   47  00:E1C6              	Print_Text:			;_si points to zero-terminated text
-   48  00:E1C6  20 99 FE    		jsr	set_write       ;_di points to VRAM add.
-   49  00:E1C9              	Print_Tex2:
-   50  00:E1C9  C2          		cly
-   51  00:E1CA  A2 00       		ldx	#$00+(ASCII_VRAM/4096)	;Palette 0, $1000 VRAM
-   52  00:E1CC              	.loop1:
-   53  00:E1CC  B1 EE       		lda	[_si],Y
-   54  00:E1CE  F0 0E       		beq	.finish
-   55  00:E1D0  8D 02 00    		sta	video_data
-   56  00:E1D3  8E 03 00    		stx	video_data+1
+   47  00:E22F              	Print_Text:			;_si points to zero-terminated text
+   48  00:E22F  20 99 FE    		jsr	set_write       ;_di points to VRAM add.
+   49  00:E232              	Print_Tex2:
+   50  00:E232  C2          		cly
+   51  00:E233  A2 00       		ldx	#$00+(ASCII_VRAM/4096)	;Palette 0, $1000 VRAM
+   52  00:E235              	.loop1:
+   53  00:E235  B1 EE       		lda	[_si],Y
+   54  00:E237  F0 0E       		beq	.finish
+   55  00:E239  8D 02 00    		sta	video_data
+   56  00:E23C  8E 03 00    		stx	video_data+1
    57                       		incw	<_si
-       00:E1D6  E6 EE       		 inc	<_si		; value at stated memory
-       00:E1D8  D0 02       		 bne	.x_00022		; location
-       00:E1DA  E6 EF       		 inc	<_si+1
-       00:E1DC              	.x_00022:
-   58  00:E1DC  80 EE       		bra	.loop1
-   59  00:E1DE              	.finish:
-   60  00:E1DE  60          		rts
+       00:E23F  E6 EE       		 inc	<_si		; value at stated memory
+       00:E241  D0 02       		 bne	.x_00028		; location
+       00:E243  E6 EF       		 inc	<_si+1
+       00:E245              	.x_00028:
+   58  00:E245  80 EE       		bra	.loop1
+   59  00:E247              	.finish:
+   60  00:E247  60          		rts
    61                       	
    62                       		
    63                       	
    64                       	
 #[1]   sprite.asm
-  265                       	;============================================================
-  266                       	;============================================================
-  267           0001        		.bank $1
-  268           4000        		.org $4000
-  269  01:4000              	SpritePal: 		.incbin "graphics/robot.pal"
-  270                       	;SpriteTiles: 	.incbin "graphics/robot.tiles"
-  271  01:4020              	SpriteTiles: 	.incspr "graphics/robot.png",0,0,2,3	;x=y=0 width =2, height = 1
-  272                       				;	.incspr "graphics/robot.png",0,16,2,1	;x=y=0 width =2, height = 1
-  273                       				;	.incspr "graphics/robot.png",0,32,2,1	;x=y=0 width =2, height = 1
-  274                       	
-  275                       	
-  276                       	
+  289                       	;============================================================
+  290                       	;============================================================
+  291           0001        		.bank $1
+  292           4000        		.org $4000
+  293  01:4000              	SpritePal: 		.incbin "graphics/robot.pal"
+  294                       	;SpriteTiles: 	.incbin "graphics/robot.tiles"
+  295  01:4020              	SpriteTiles: 	.incspr "graphics/robot.png",0,0,2,3	;x=y=0 width =2, height = 1
+  296                       				;	.incspr "graphics/robot.png",0,16,2,1	;x=y=0 width =2, height = 1
+  297                       				;	.incspr "graphics/robot.png",0,32,2,1	;x=y=0 width =2, height = 1
+  298                       	
+  299                       	
+  300                       	

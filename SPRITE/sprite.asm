@@ -202,10 +202,9 @@ test_PAD_DOWN:
 	lda satb	;	yl 
 	cmp #MAX_Y
 	bcs	test_PAD_UP	;
-	inc satb+8*0
-	; TODO fix issue when sprite get to the bottom as they disappear
-	inc satb+8*1
-	inc satb+8*2
+	incw satb+8*0	;	yl
+	incw satb+8*1
+	incw satb+8*2
 	
 test_PAD_UP:
 	lda pad_cur
@@ -214,9 +213,9 @@ test_PAD_UP:
 	lda satb	;	yl 
 	cmp #MIN_Y
 	beq	test_PAD_RIGHT	;
-	dec satb+8*0
-	dec satb+8*1
-	dec satb+8*2
+	decw satb+8*0	;	yl
+	decw satb+8*1
+	decw satb+8*2
 	
 test_PAD_RIGHT:
 	lda pad_cur
@@ -224,6 +223,17 @@ test_PAD_RIGHT:
 	beq test_PAD_LEFT
 	lda satb+3	;	xh 
 	bne test_PAD_LEFT	; MAX_X	= $100	; Maximum xpos for spr
+	; unflip sprite horizontally
+	lda #$F7	; sprite x mirror flag in sprite atribute MSB
+	and satb+7+8*0	;	or flag to sprite attributes MSB
+	sta satb+7+8*0	; save value back into memory 
+	lda #$F7	; sprite x mirror flag in sprite atribute MSB
+	and satb+7+8*1	;	or flag to sprite attributes MSB
+	sta satb+7+8*1	; save value back into memory 
+	lda #$F7	; sprite x mirror flag in sprite atribute MSB
+	and satb+7+8*2	;	or flag to sprite attributes MSB
+	sta satb+7+8*2	; save value back into memory 
+	; inc x position of all 3 sprites
 	inc satb+2+8*0	; xl
 	inc satb+2+8*1
 	inc satb+2+8*2
@@ -231,6 +241,7 @@ test_PAD_RIGHT:
 	inc satb+3+8*0	; xh
 	inc satb+3+8*1
 	inc satb+3+8*2
+	
 			
 test_PAD_LEFT:	
 	lda pad_cur
@@ -242,12 +253,24 @@ test_PAD_LEFT:
 	lda satb+3	;	xh
 	sbc #$0
 	bcc update_vram
+	; inc x position of all 3 sprites
 	stz satb+3+8*0	;	xh
 	stz satb+3+8*1	;	xh
 	stz satb+3+8*2	;	xh
 	dec satb+2+8*0	; xl
 	dec satb+2+8*1
 	dec satb+2+8*2
+	; flip sprite horizontally
+	lda #$08	; sprite x mirror flag in sprite atribute MSB
+	ora satb+7+8*0	;	or flag to sprite attributes MSB
+	sta satb+7+8*0	; save value back into memory 
+	lda #$08	; sprite x mirror flag in sprite atribute MSB
+	ora satb+7+8*1	;	or flag to sprite attributes MSB
+	sta satb+7+8*1	; save value back into memory 
+	lda #$08	; sprite x mirror flag in sprite atribute MSB
+	ora satb+7+8*2	;	or flag to sprite attributes MSB
+	sta satb+7+8*2	; save value back into memory 
+	
 
 			
 update_vram:
